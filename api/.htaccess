@@ -1,0 +1,33 @@
+# ============================================================
+# Apache 用。Nginx 用户请忽略这个文件，改在站点配置里加规则
+# （具体见 DEPLOY.md）。
+# ============================================================
+
+# 挡住配置文件、库文件、SQL 和自检脚本。
+# 这些文件里有数据库密码，绝不能被浏览器下载。
+<FilesMatch "^(config\.php|config\.dev\.php|schema\.sql|selftest\.php)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# lib 目录整个不对外
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^lib/ - [F,L]
+</IfModule>
+
+# 不列目录
+Options -Indexes
+
+# 接口响应不缓存，否则登录状态会串
+<FilesMatch "\.php$">
+    <IfModule mod_headers.c>
+        Header set Cache-Control "no-store, no-cache, must-revalidate"
+        Header set X-Content-Type-Options "nosniff"
+    </IfModule>
+</FilesMatch>

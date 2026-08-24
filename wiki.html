@@ -1,0 +1,1281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wiki · 永恒流光</title>
+<!--
+  ============================================================
+  永恒流光 Wiki —— 纯静态单文件，无后端、无外链图片。
+  词条内容全部写在下方 WIKI 对象里（分类 + 文章），
+  文章正文用「块」描述：h(小标题) / p(段落) / ul(列表) /
+  steps(步骤) / cmd(指令) / tip(提示) / warn(注意)。
+  加词条只需往 WIKI.articles 里追加一项，侧栏目录、分类卡片、
+  搜索索引、最近更新会自动跟着变。
+
+  alias 字段放「用户会搜但正文没原样出现」的说法：中文是子串匹配，
+  词条叫「赚第一笔金币」时搜「赚钱」命中不了，得靠它兜住。
+
+  站点信息在下方 SITE 对象里，建议与首页 CONFIG 一致。
+  ============================================================
+-->
+<style>
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#fbf3e3;--cream2:#fffaf0;--paper:#f6ead2;
+  --ink:#42352a;--ink2:#6f5f4c;--dim:#9c8b72;
+  --sun:#f4a521;--orange:#ef7d3c;--coral:#f3936b;--sky:#4facdd;--grass:#6cba5a;
+  --line:rgba(120,90,50,.14);--line2:rgba(120,90,50,.24);
+  --sh:0 14px 38px rgba(150,100,40,.13);--sh-sm:0 6px 18px rgba(150,100,40,.1);
+  --rl:20px;
+  color-scheme:light;
+}
+body.night{
+  --cream:#16110b;--cream2:#211a12;--paper:#120e09;
+  --ink:#f3ead8;--ink2:#cdbb9e;--dim:#9a896f;
+  --line:rgba(255,221,150,.12);--line2:rgba(255,221,150,.24);
+  --sh:0 16px 40px rgba(0,0,0,.5);--sh-sm:0 8px 20px rgba(0,0,0,.4);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--cream);color:var(--ink);overflow-x:hidden;min-height:100vh;
+  -webkit-font-smoothing:antialiased;transition:background-color .9s ease,color .9s ease;
+  background-image:
+    radial-gradient(ellipse at 15% 8%,rgba(244,165,33,.055) 0%,transparent 46%),
+    radial-gradient(ellipse at 85% 92%,rgba(239,125,60,.042) 0%,transparent 46%);}
+body.night{background-image:
+    radial-gradient(ellipse at 18% 8%,rgba(100,120,210,.04) 0%,transparent 46%),
+    radial-gradient(ellipse at 82% 92%,rgba(80,60,150,.046) 0%,transparent 46%);}
+a{color:inherit;}
+.wrap{max-width:1140px;margin:0 auto;padding:0 40px;}
+.sec{padding:96px 0;position:relative;}
+.sec.paper{background:var(--paper);transition:background-color .9s ease;
+  background-image:repeating-linear-gradient(-52deg,transparent 0,transparent 26px,rgba(120,90,50,.015) 26px,rgba(120,90,50,.015) 27px);}
+body.night .sec.paper{background-image:repeating-linear-gradient(-52deg,transparent 0,transparent 26px,rgba(255,210,130,.009) 26px,rgba(255,210,130,.009) 27px);}
+.kicker{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--orange);margin-bottom:14px;}
+.kicker::before{content:'';width:20px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--sun),var(--orange));}
+.h2{font-size:clamp(27px,3.6vw,38px);font-weight:900;letter-spacing:-.5px;line-height:1.15;color:var(--ink);transition:color .9s ease;}
+.lead{font-size:15px;color:var(--ink2);line-height:1.9;transition:color .9s ease;}
+.lead .hl{color:var(--orange);font-weight:700;}
+.px{font-family:ui-monospace,'Courier New',monospace;font-size:11px;letter-spacing:.5px;}
+
+/* ───────── NAV ───────── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;height:66px;display:flex;align-items:center;padding:0 36px;
+  transition:height .35s,background .35s,box-shadow .35s;}
+.nav.solid{background:rgba(251,243,227,.88);backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 2px 20px rgba(150,100,40,.08);}
+body.night .nav.solid{background:rgba(22,17,11,.82);box-shadow:0 2px 20px rgba(0,0,0,.4);}
+.nav.shrink{height:54px;}
+.nav-logo{display:flex;align-items:center;gap:11px;text-decoration:none;margin-right:30px;flex-shrink:0;}
+.lm{width:32px;height:32px;border-radius:9px;overflow:hidden;box-shadow:0 4px 12px rgba(150,100,40,.25);
+  flex-shrink:0;transition:width .35s,height .35s;display:block;}
+.nav.shrink .lm{width:28px;height:28px;}
+/* CSS 草方块 logo */
+.lm-block{background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 1px,transparent 1px 8px),
+    linear-gradient(to bottom,#93d653 0,#93d653 22%,#79bf3c 22%,#79bf3c 38%,#9c6b3f 38%,#9c6b3f 52%,#875930 52%,#7a4f2a 100%);}
+.nav-name{font-size:17px;font-weight:900;color:var(--ink);letter-spacing:.5px;transition:color .9s ease;}
+.nav-links{display:flex;gap:2px;flex:1;min-width:0;}
+.nl{font-size:13px;color:var(--ink2);padding:7px 12px;border-radius:9px;text-decoration:none;
+  transition:color .15s,background .15s;white-space:nowrap;font-weight:500;}
+.nl:hover{color:var(--ink);background:rgba(120,90,50,.07);}
+body.night .nl:hover{background:rgba(255,221,150,.08);}
+.nl.act{color:var(--orange);}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.live-pill{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#3f9e63;
+  background:rgba(108,186,90,.14);border:1px solid rgba(108,186,90,.3);padding:5px 13px;border-radius:99px;}
+body.night .live-pill{color:#8fe0a3;}
+.dot{width:7px;height:7px;border-radius:50%;background:#5bbf6f;flex-shrink:0;animation:pulse 2.4s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(91,191,111,.5);}70%{box-shadow:0 0 0 5px rgba(91,191,111,0);}}
+.nav-ip{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--ink2);background:rgba(120,90,50,.06);
+  border:1px solid var(--line);padding:5px 10px;border-radius:7px;cursor:pointer;transition:all .2s;}
+body.night .nav-ip{background:rgba(255,221,150,.06);}
+.nav-ip:hover{border-color:var(--line2);color:var(--ink);}
+.nav-ip.ok{color:#3f9e63;border-color:rgba(108,186,90,.4);}
+.btn-apply-nav{font-family:inherit;font-size:13px;font-weight:800;color:#fff;border:none;border-radius:10px;
+  padding:9px 20px;cursor:pointer;background:linear-gradient(135deg,var(--sun),var(--orange));
+  box-shadow:0 6px 18px rgba(239,125,60,.32);transition:transform .15s,box-shadow .2s;}
+.btn-apply-nav:hover{transform:translateY(-1px);box-shadow:0 9px 24px rgba(239,125,60,.45);}
+.theme-toggle{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:radial-gradient(circle at 32% 30%,#fff5d6,#ffd98a 55%,#f7b733);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
+  box-shadow:0 4px 14px rgba(244,165,33,.35);transition:transform .25s,box-shadow .25s,background .5s;}
+.theme-toggle:hover{transform:translateY(-1px) rotate(18deg);box-shadow:0 6px 18px rgba(244,165,33,.5);}
+.theme-toggle svg{width:19px;height:19px;}
+.theme-toggle .tt-moon{display:none;}
+body.night .theme-toggle{background:radial-gradient(circle at 34% 30%,#cfd8f5,#9fb0e8 55%,#5566a8);box-shadow:0 4px 14px rgba(120,140,210,.4);}
+body.night .theme-toggle .tt-sun{display:none;}
+body.night .theme-toggle .tt-moon{display:block;}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal;}
+::view-transition-new(root){z-index:99999;}
+::view-transition-old(root){z-index:1;}
+html.vt-active *{transition:none !important;}
+.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;margin-left:auto;z-index:600;}
+.ham span{display:block;width:23px;height:2px;background:var(--ink);border-radius:2px;transition:all .3s;}
+.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:286px;background:var(--cream2);
+  box-shadow:-10px 0 40px rgba(0,0,0,.18);z-index:550;transform:translateX(100%);
+  transition:transform .42s cubic-bezier(.4,0,.2,1);padding:84px 26px 40px;display:flex;flex-direction:column;gap:3px;}
+.drawer.open{transform:translateX(0);}
+.drawer .nl{font-size:15px;padding:12px 14px;border-radius:11px;}
+.drawer-sep{height:1px;background:var(--line);margin:14px 0;}
+.drawer-ip{font-family:ui-monospace,monospace;font-size:13px;color:var(--ink2);padding:8px 14px;}
+.drawer-apply{font-family:inherit;font-size:15px;font-weight:800;color:#fff;border:none;border-radius:11px;
+  padding:14px;cursor:pointer;width:100%;margin-top:10px;background:linear-gradient(135deg,var(--sun),var(--orange));}
+.dov{position:fixed;inset:0;background:rgba(60,40,20,.32);z-index:540;opacity:0;pointer-events:none;transition:opacity .3s;}
+.dov.open{opacity:1;pointer-events:auto;}
+
+/* ───────── FOOTER ───────── */
+.footer{background:var(--paper);border-top:1px solid var(--line);padding:44px 40px 30px;transition:background-color .9s,border-color .9s;}
+.footer-in{max-width:1140px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:28px;}
+.fl-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.fl-name{font-size:16px;font-weight:900;color:var(--ink);transition:color .9s;}
+.fl-tag{font-size:13px;color:var(--ink2);line-height:1.8;max-width:280px;transition:color .9s;}
+.fl-links{display:flex;flex-wrap:wrap;gap:7px 22px;}
+.fl-a{font-size:13px;color:var(--ink2);text-decoration:none;font-weight:500;transition:color .15s;}
+.fl-a:hover{color:var(--orange);}
+.fl-r{text-align:right;}
+.fl-ip{font-family:ui-monospace,monospace;font-size:13px;color:var(--ink);background:var(--cream2);
+  border:1px solid var(--line);padding:8px 16px;border-radius:9px;display:inline-block;margin-bottom:10px;
+  cursor:pointer;transition:background-color .9s,color .9s,border-color .9s;}
+.fl-sub{font-size:12px;color:var(--dim);line-height:1.8;transition:color .9s;}
+.foot-byline{max-width:1140px;margin:26px auto 0;padding-top:20px;border-top:1px solid var(--line);
+  text-align:center;font-size:12px;color:var(--dim);transition:color .9s,border-color .9s;}
+
+/* ───────── UTIL ───────── */
+.fu{opacity:0;transform:translateY(28px);
+  transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1);}
+.fu.vis{opacity:1;transform:none;}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--ink);
+  color:var(--cream);font-size:13.5px;font-weight:600;padding:12px 24px;border-radius:11px;opacity:0;
+  pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999;box-shadow:0 12px 34px rgba(0,0,0,.3);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+
+/* ───────── WIKI 布局 ───────── */
+.wk-wrap{max-width:1480px;margin:0 auto;padding:104px 30px 78px;}
+.wk-hero{max-width:920px;margin-bottom:26px;}
+.wk-kicker{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--orange);margin-bottom:8px;}
+.wk-title{font-size:clamp(34px,5vw,54px);font-weight:900;letter-spacing:-1px;color:var(--ink);line-height:1.08;
+  transition:color .9s ease;}
+.wk-desc{font-size:15px;color:var(--ink2);line-height:1.8;margin-top:12px;transition:color .9s ease;}
+/* 搜索 */
+.wk-search{position:relative;margin-top:22px;max-width:720px;}
+.wk-search input{width:100%;height:54px;border:1.5px solid var(--line2);border-radius:16px;
+  background:var(--cream2);color:var(--ink);font:inherit;font-size:16px;padding:0 18px 0 50px;outline:none;
+  box-shadow:var(--sh-sm);transition:border-color .2s,box-shadow .2s,background-color .9s,color .9s;}
+.wk-search input:focus{border-color:var(--sun);box-shadow:0 0 0 4px rgba(244,165,33,.13);}
+.wk-si{position:absolute;left:17px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+  stroke:var(--dim);fill:none;stroke-width:2;stroke-linecap:round;pointer-events:none;}
+.wk-panel{display:none;position:absolute;z-index:80;left:0;right:0;top:62px;background:var(--cream2);
+  border:1px solid var(--line2);border-radius:18px;box-shadow:0 18px 50px rgba(60,40,20,.18);overflow:hidden;}
+.wk-panel.open{display:block;}
+.wk-hit{display:block;padding:13px 16px;border-bottom:1px solid var(--line);text-decoration:none;cursor:pointer;}
+.wk-hit:last-child{border-bottom:0;}
+.wk-hit:hover,.wk-hit.active{background:rgba(244,165,33,.1);}
+.wk-hit-path{font-size:11.5px;color:var(--orange);font-weight:900;margin-bottom:4px;}
+.wk-hit-title{font-size:14px;font-weight:900;color:var(--ink);}
+.wk-hit-desc{font-size:12.5px;color:var(--ink2);line-height:1.55;margin-top:3px;}
+.wk-hit mark{background:rgba(244,165,33,.3);border-radius:4px;color:var(--ink);padding:0 1px;}
+.wk-empty{padding:16px;font-size:13px;color:var(--ink2);}
+/* 两栏 */
+.wk-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:30px;align-items:start;}
+.wk-side{position:sticky;top:84px;max-height:calc(100vh - 104px);overflow:auto;background:var(--cream2);
+  border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--sh-sm);
+  transition:background-color .9s,border-color .9s;}
+.wk-side-title{font-size:14px;font-weight:900;margin-bottom:10px;color:var(--ink);}
+.wk-tree{display:flex;flex-direction:column;gap:6px;}
+.wk-group{border-bottom:1px solid var(--line);padding-bottom:7px;}
+.wk-group:last-child{border-bottom:0;}
+.wk-group-row{display:flex;align-items:center;gap:4px;}
+.wk-cat-link{flex:1;color:var(--ink);font-size:13px;font-weight:900;text-decoration:none;
+  padding:8px 7px;border-radius:9px;cursor:pointer;transition:background .15s,color .15s;}
+.wk-cat-link:hover,.wk-cat-link.active{background:rgba(244,165,33,.1);color:var(--orange);}
+.wk-cat-n{color:var(--dim);font-weight:700;}
+.wk-toggle{width:30px;border:0;background:transparent;color:var(--dim);font:inherit;font-size:13px;
+  font-weight:900;padding:7px 4px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s,transform .2s;}
+.wk-toggle:hover{background:rgba(244,165,33,.1);color:var(--orange);}
+.wk-group.open .wk-toggle{transform:rotate(180deg);}
+.wk-list{display:none;padding:2px 0 6px 11px;}
+.wk-group.open .wk-list{display:block;}
+.wk-list a{display:block;text-decoration:none;color:var(--ink2);font-size:12.5px;line-height:1.45;
+  padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;}
+.wk-list a:hover{background:var(--paper);color:var(--orange);}
+.wk-list a.active{background:rgba(244,165,33,.12);color:var(--orange);font-weight:800;}
+.wk-side-actions{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:grid;gap:8px;}
+.wk-side-actions a{text-decoration:none;text-align:center;font-size:13px;font-weight:900;border-radius:11px;
+  padding:10px;border:1px solid var(--line2);background:var(--paper);color:var(--ink);transition:all .15s;}
+.wk-side-actions a:hover{border-color:var(--orange);color:var(--orange);}
+.wk-side-actions a.main{background:linear-gradient(135deg,var(--sun),var(--orange));color:#fff;border:0;}
+.wk-side-actions a.main:hover{color:#fff;filter:brightness(1.05);}
+/* 内容区 */
+.wk-content{min-width:0;}
+.wk-sec-title{font-size:18px;font-weight:900;margin:0 0 14px;color:var(--ink);}
+.wk-cat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
+.wk-card{background:var(--cream2);border:1px solid var(--line);border-radius:18px;padding:18px;
+  box-shadow:var(--sh-sm);transition:transform .25s,box-shadow .25s,background-color .9s,border-color .9s;}
+.wk-card:hover{transform:translateY(-3px);box-shadow:var(--sh);}
+.wk-card-h{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
+.wk-card-h h2{font-size:17px;font-weight:900;color:var(--ink);}
+.wk-card-n{font-size:11px;color:var(--orange);font-weight:900;white-space:nowrap;}
+.wk-card p{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:12px;}
+.wk-docs{display:grid;gap:7px;}
+.wk-docs a{font-size:13.5px;color:var(--ink);font-weight:800;text-decoration:none;line-height:1.45;
+  cursor:pointer;transition:color .15s;}
+.wk-docs a:hover{color:var(--orange);}
+.wk-card-more{display:inline-block;margin-top:12px;font-size:12.5px;color:var(--orange);
+  font-weight:900;text-decoration:none;cursor:pointer;}
+.wk-recent{margin-top:28px;background:var(--cream2);border:1px solid var(--line);border-radius:18px;
+  padding:18px;box-shadow:var(--sh-sm);transition:background-color .9s,border-color .9s;}
+.wk-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:10px 0;border-top:1px solid var(--line);
+  text-decoration:none;cursor:pointer;align-items:center;}
+.wk-row:first-of-type{border-top:0;}
+.wk-row strong{font-size:13.5px;color:var(--ink);font-weight:800;}
+.wk-row span{font-size:12px;color:var(--dim);white-space:nowrap;}
+.wk-row:hover strong{color:var(--orange);}
+.wk-contrib{margin-top:22px;border:1px solid rgba(244,165,33,.26);background:rgba(244,165,33,.09);
+  border-radius:18px;padding:18px;}
+.wk-contrib h2{font-size:17px;font-weight:900;margin-bottom:6px;color:var(--ink);}
+.wk-contrib p{font-size:13px;color:var(--ink2);line-height:1.7;}
+.wk-contrib button{display:inline-block;margin-top:12px;color:#fff;font-family:inherit;
+  background:linear-gradient(135deg,var(--sun),var(--orange));padding:10px 16px;border:0;border-radius:11px;
+  font-weight:900;font-size:13px;cursor:pointer;transition:transform .15s,box-shadow .2s;}
+.wk-contrib button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(239,125,60,.32);}
+.wk-mobile-dir{display:none;margin:0 0 16px;border:1px solid var(--line2);background:var(--cream2);
+  border-radius:12px;padding:10px 14px;font:inherit;font-weight:900;color:var(--ink);cursor:pointer;}
+
+/* ───────── 词条正文视图 ───────── */
+.wk-article{display:none;}
+body.reading .wk-article{display:block;}
+body.reading .wk-overview{display:none;}
+.wk-crumb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);margin-bottom:14px;flex-wrap:wrap;}
+.wk-crumb a{color:var(--orange);font-weight:800;text-decoration:none;cursor:pointer;}
+.wk-crumb span{color:var(--dim);}
+.wk-doc{background:var(--cream2);border:1px solid var(--line);border-radius:20px;padding:34px 38px;
+  box-shadow:var(--sh-sm);transition:background-color .9s,border-color .9s;}
+.wk-doc-cat{font-size:11.5px;font-weight:900;letter-spacing:.1em;color:var(--orange);margin-bottom:9px;}
+.wk-doc h1{font-size:clamp(24px,3.4vw,33px);font-weight:900;line-height:1.25;color:var(--ink);margin-bottom:10px;}
+.wk-doc-meta{font-size:12.5px;color:var(--dim);padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid var(--line);}
+.wk-doc-sum{font-size:14.5px;line-height:1.85;color:var(--ink2);background:var(--paper);border-left:3px solid var(--sun);
+  border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:24px;transition:background-color .9s;}
+.wk-doc h2{font-size:18px;font-weight:900;color:var(--ink);margin:28px 0 10px;padding-left:11px;
+  border-left:4px solid var(--orange);line-height:1.4;}
+.wk-doc p{font-size:14.5px;line-height:1.9;color:var(--ink2);margin-bottom:14px;}
+.wk-doc strong{color:var(--ink);font-weight:800;}
+.wk-doc ul{margin:0 0 16px;padding-left:2px;list-style:none;}
+.wk-doc li{position:relative;font-size:14.5px;line-height:1.85;color:var(--ink2);padding-left:20px;margin-bottom:7px;}
+.wk-doc li::before{content:'';position:absolute;left:4px;top:.72em;width:6px;height:6px;border-radius:2px;
+  background:var(--sun);}
+.wk-steps{counter-reset:st;margin:0 0 18px;padding:0;list-style:none;}
+.wk-steps li{counter-increment:st;position:relative;padding-left:38px;margin-bottom:13px;
+  font-size:14.5px;line-height:1.8;color:var(--ink2);}
+.wk-steps li::before{content:counter(st);position:absolute;left:0;top:0;width:25px;height:25px;
+  border-radius:8px;background:linear-gradient(135deg,var(--sun),var(--orange));color:#fff;
+  font-size:12.5px;font-weight:900;display:flex;align-items:center;justify-content:center;}
+.wk-cmd{display:block;font-family:ui-monospace,'Courier New',monospace;font-size:13.5px;
+  background:var(--paper);border:1px solid var(--line2);border-radius:10px;padding:12px 15px;
+  margin-bottom:14px;color:var(--ink);overflow-x:auto;white-space:pre;transition:background-color .9s;}
+.wk-cmd b{color:var(--orange);font-weight:700;}
+.wk-note{border-radius:12px;padding:14px 17px;margin-bottom:16px;font-size:13.5px;line-height:1.8;}
+.wk-note.tip{background:rgba(108,186,90,.12);border:1px solid rgba(108,186,90,.32);color:var(--ink2);}
+.wk-note.warn{background:rgba(239,125,60,.11);border:1px solid rgba(239,125,60,.32);color:var(--ink2);}
+.wk-note b{color:var(--ink);}
+.wk-note-t{font-weight:900;margin-right:6px;}
+.wk-note.tip .wk-note-t{color:#3f9e63;}
+.wk-note.warn .wk-note-t{color:var(--orange);}
+.wk-nav{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px;}
+.wk-nav-b{background:var(--cream2);border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+  text-decoration:none;cursor:pointer;transition:border-color .15s,transform .2s;}
+.wk-nav-b:hover{border-color:var(--orange);transform:translateY(-2px);}
+.wk-nav-b .l{font-size:11.5px;color:var(--dim);font-weight:800;margin-bottom:4px;}
+.wk-nav-b .t{font-size:13.5px;color:var(--ink);font-weight:800;line-height:1.45;}
+.wk-nav-b.next{text-align:right;}
+.wk-nav-b.ph{visibility:hidden;}
+
+/* ───────── 响应式 ───────── */
+@media(max-width:1100px){
+  .wk-cat-grid{grid-template-columns:1fr;}
+}
+@media(max-width:900px){
+  .wk-wrap{padding:88px 16px 64px;}
+  .wk-layout{grid-template-columns:1fr;}
+  .wk-side{display:none;}
+  .wk-side.open{display:block;position:fixed;z-index:600;top:0;left:0;bottom:0;width:min(320px,88vw);
+    max-height:none;border-radius:0;padding-top:76px;overflow:auto;}
+  .wk-mobile-dir{display:inline-flex;}
+  .wk-panel{position:absolute;left:0;right:0;}
+  .wk-doc{padding:24px 20px;}
+  .wk-nav{grid-template-columns:1fr;}
+  .wk-nav-b.ph{display:none;}
+}
+@media(max-width:768px){
+  .nav{padding:0 18px;height:60px;}
+  .nav.shrink{height:52px;}
+  .nav-links,.nav-r{display:none;}
+  .ham{display:flex;}
+  .nav-logo{margin-right:0;}
+  .footer-in{flex-direction:column;}
+  .fl-r{text-align:left;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
+  html{scroll-behavior:auto;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav class="nav solid" id="nav">
+  <a class="nav-logo" href="index.html"><span class="lm lm-block"></span><span class="nav-name" id="brandName">永恒流光</span></a>
+  <div class="nav-links">
+    <a class="nl" href="index.html">首页</a>
+    <a class="nl act" id="nlWiki" href="wiki.html">Wiki</a>
+    <a class="nl" id="nlManual" href="wiki.html?p=manual">游玩手册</a>
+    <a class="nl" href="index.html#showcase">建筑欣赏</a>
+    <a class="nl" href="index.html#guilds">公会</a>
+    <a class="nl" href="index.html#news">更新日志</a>
+  </div>
+  <div class="nav-r">
+    <div class="live-pill"><span class="dot"></span><span id="ns">文档 <b id="docCount">0</b> 篇</span></div>
+    <span class="nav-ip" id="navIp" onclick="copyIP(this)">YHLG.LOVE:25565</span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleNight()" title="切换昼夜" aria-label="切换昼夜"><svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4"/></svg><svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  </div>
+  <button class="ham" id="ham" aria-label="菜单"><span></span><span></span><span></span></button>
+</nav>
+<div class="dov" id="dov"></div>
+<div class="drawer" id="drawer">
+  <a class="nl" href="index.html">首页</a>
+  <a class="nl act" id="dlWiki" href="wiki.html">Wiki</a>
+  <a class="nl" id="dlManual" href="wiki.html?p=manual">游玩手册</a>
+  <a class="nl" href="index.html#showcase">建筑欣赏</a>
+  <a class="nl" href="index.html#guilds">公会</a>
+  <a class="nl" href="index.html#news">更新日志</a>
+  <div class="drawer-sep"></div>
+  <div class="drawer-ip" id="drawerIp">YHLG.LOVE · 25565</div>
+  <button class="nl" style="font-family:inherit;font-size:15px;font-weight:500;color:var(--ink2);background:none;border:none;text-align:left;padding:12px 14px;border-radius:11px;cursor:pointer;" onclick="toggleNight()">🌓 切换昼夜</button>
+</div>
+
+<main class="wk-wrap">
+  <!-- HERO + 搜索 -->
+  <section class="wk-hero">
+    <div class="wk-kicker" id="wkKicker">WIKI</div>
+    <h1 class="wk-title" id="wkTitle">永恒流光 Wiki</h1>
+    <p class="wk-desc">进服、领地、经济与常见疑难的文档集合。找不到答案就去群里问，问完欢迎回来补一条。</p>
+    <div class="wk-search">
+      <svg class="wk-si" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="wkSearch" type="search" placeholder="搜索玩法、指令和问题…" autocomplete="off" aria-label="搜索 Wiki">
+      <div class="wk-panel" id="wkPanel" role="listbox"></div>
+    </div>
+  </section>
+
+  <button class="wk-mobile-dir" type="button" id="wkDirBtn">☰ 文档目录</button>
+
+  <div class="wk-layout">
+    <!-- 侧栏目录树 -->
+    <aside class="wk-side" id="wkSide">
+      <div class="wk-side-title">文档目录</div>
+      <nav class="wk-tree" id="wkTree" aria-label="Wiki 文档目录"></nav>
+      <div class="wk-side-actions">
+        <a class="main" id="contribBtn">参与贡献</a>
+        <a href="index.html">返回首页</a>
+      </div>
+    </aside>
+
+    <section class="wk-content">
+      <!-- 总览视图 -->
+      <div class="wk-overview" id="wkOverview">
+        <h2 class="wk-sec-title" id="wkOvTitle">Wiki 分类总览</h2>
+        <div class="wk-cat-grid" id="wkCatGrid"></div>
+        <section class="wk-recent">
+          <h2 class="wk-sec-title">最近更新</h2>
+          <div id="wkRecent"></div>
+        </section>
+        <section class="wk-contrib">
+          <h2>没有找到需要的内容？</h2>
+          <p>可以在群里提出来，或者把你踩过的坑写成一条词条补进来——下一个卡在同样问题上的人会谢谢你。</p>
+          <button type="button" id="contribBtn2">创建新词条</button>
+        </section>
+      </div>
+
+      <!-- 词条阅读视图 -->
+      <article class="wk-article" id="wkArticle">
+        <div class="wk-crumb">
+          <a id="crumbHome">Wiki</a><span>/</span>
+          <a id="crumbCat"></a><span>/</span>
+          <span id="crumbTitle"></span>
+        </div>
+        <div class="wk-doc" id="wkDoc"></div>
+        <div class="wk-nav" id="wkPrevNext"></div>
+      </article>
+    </section>
+  </div>
+</main>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="footer-in">
+    <div>
+      <div class="fl-logo"><span class="lm lm-block" style="width:26px;height:26px;"></span><span class="fl-name">永恒流光</span></div>
+      <p class="fl-tag">一座住着朋友的 Minecraft 小镇，<br>慢慢生活，欢迎回家。</p>
+    </div>
+    <div>
+      <div class="fl-links">
+        <a class="fl-a" href="index.html#why">关于小镇</a>
+        <a class="fl-a" href="wiki.html">Wiki</a>
+        <a class="fl-a" href="wiki.html?p=manual">游玩手册</a>
+        <a class="fl-a" href="index.html#guilds">公会</a>
+        <a class="fl-a" href="index.html#showcase">建筑欣赏</a>
+        <a class="fl-a" href="index.html#news">更新日志</a>
+      </div>
+    </div>
+    <div class="fl-r">
+      <div class="fl-ip" id="footIp" onclick="copyIP(this)">YHLG.LOVE · 25565</div>
+      <div class="fl-sub" id="footSub">QQ 群 123456789</div>
+    </div>
+  </div>
+  <div class="foot-byline">打造玩家心中的世界 · 永恒流光</div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ★ 站点信息（与首页 CONFIG 保持一致即可）★
+   ══════════════════════════════════════════════════════════════ */
+var SITE={ name:'永恒流光', host:'YHLG.LOVE', port:'25565', qq:'834909400', version:'1.21.11' };
+
+/* ══════════════════════════════════════════════════════════════
+   ★ Wiki 内容 ★
+   分类：id / name / desc
+   文章：id / cat / title / summary / date / blocks / alias(补充搜索词)
+   blocks 支持的块类型：
+     {h:'小标题'}                     小节标题
+     {p:'段落，可含 <b>加粗</b>'}      段落
+     {ul:['要点一','要点二']}          要点列表
+     {steps:['第一步','第二步']}       编号步骤
+     {cmd:'/命令 参数'}                指令框（可多行，用 \n）
+     {tip:'提示内容'}                  绿色提示条
+     {warn:'注意内容'}                 橙色警告条
+   ══════════════════════════════════════════════════════════════ */
+var WIKI={
+categories:[
+  {id:'start',   name:'进服与客户端', desc:'第一次连进来要准备什么，版本、账号和连接问题。'},
+  {id:'land',    name:'领地与家园',   desc:'怎么圈地、怎么回家、怎么把朋友加进来一起建。'},
+  {id:'money',   name:'经济与交易',   desc:'金币从哪来、怎么转账、摆摊和收购怎么用。'},
+  {id:'play',    name:'玩法与世界',   desc:'几个世界分别玩什么，任务、钓鱼、种植怎么上手。'},
+  {id:'build',   name:'建造与红石',   desc:'投影、连锁挖矿、红石机器的规模限制与建议。'},
+  {id:'trouble', name:'设置与疑难',   desc:'材质包、界面、音乐、飞行等常见异常的处理办法。'},
+  {id:'rule',    name:'规则与反馈',   desc:'服内红线、举报流程，以及怎么联系管理组。'}
+],
+articles:[
+
+/* ── 进服与客户端 ── */
+{id:'join-basic', cat:'start', date:'2026-08-20',
+ title:'第一次进服要准备什么',
+ summary:'客户端版本对上、地址填全、资源包允许下载，这三件事做对就能进来了。',
+ alias:'进不去 连不上 进服 加入 地址 IP 端口 版本 怎么进',
+ blocks:[
+  {p:'小镇跑在 <b>Minecraft Java 版</b>上，只要版本对得上、地址填完整，基本一次就能连上。下面按顺序过一遍。'},
+  {h:'准备工作'},
+  {steps:[
+    '把游戏版本切到服务器当前版本（见下方提示），版本不一致是进不去的第一大原因。',
+    '在多人游戏里点「添加服务器」，服务器名随便填，地址栏填写完整地址（含端口）。',
+    '把该条目的「服务器资源包」设为<b>启用</b>，否则菜单会显示成一堆乱码方框。',
+    '双击进入，第一次连接会下载资源包，等进度条走完就好。'
+  ]},
+  {h:'服务器地址'},
+  {cmd:'地址：{HOST}\n版本：Java 版 {VER}'},
+  {tip:'导航栏上的地址点一下就能复制，不用手打。'},
+  {h:'连不上怎么排查'},
+  {ul:[
+    '先确认版本号，差一个小版本也连不上。',
+    '地址后面的端口不要漏，只填域名有时会解析不到。',
+    '换个网络试试，部分校园网和公司网会拦游戏端口。',
+    '以上都试过还是不行，把报错截图发到群里，说明你用的启动器和版本。'
+  ]},
+  {warn:'不要在群里直接甩「进不去」三个字，附上版本号和报错截图能省掉十轮来回。'}
+ ]},
+
+{id:'join-offline', cat:'start', date:'2026-08-18',
+ title:'离线账号和正版账号都能玩吗',
+ summary:'两种都支持。离线登录直接进，正版账号的皮肤会自动带进来。',
+ alias:'离线 正版 盗版 账号 登录 改名 ID',
+ blocks:[
+  {p:'小镇<b>不强制正版验证</b>，离线登录也可以正常游玩，进度和权限跟正版账号完全一样。'},
+  {h:'两者的区别'},
+  {ul:[
+    '正版账号：皮肤和 ID 自动同步，换设备登录不用重新设置。',
+    '离线账号：需要自己在皮肤站上传皮肤再同步，ID 请一直用同一个，改 ID 等于换了个人，数据不会跟着走。'
+  ]},
+  {warn:'离线玩家千万记住自己的 ID 拼写。大小写不同在服务器看来就是两个不同的人，领地和金币都找不回来。'},
+  {tip:'想换 ID 的话先在群里说一声，让管理帮你把数据迁过去，别自己直接改。'}
+ ]},
+
+{id:'join-mobile', cat:'start', date:'2026-08-16',
+ title:'手机能进服吗',
+ summary:'安卓可以用第三方启动器进，iOS 目前没有省事的方案，建议用电脑。',
+ alias:'手机 安卓 iOS 平板 移动端 基岩版 启动器',
+ blocks:[
+  {p:'手机进服的核心是找一个能跑 <b>Java 版</b>的启动器——基岩版（手机商店里直接下载的那个）是进不来的，协议不一样。'},
+  {h:'安卓'},
+  {steps:[
+    '装一个支持 Java 版的第三方启动器。',
+    '在启动器里下载和服务器一致的游戏版本。',
+    '导入账号（离线模式填 ID 即可），分配内存建议不低于 2G。',
+    '添加服务器地址，进服后把资源包设为启用。'
+  ]},
+  {h:'iOS'},
+  {p:'目前没有稳定省事的办法，折腾成本远高于收益。手上有电脑的话优先用电脑，或者借一台安卓设备。'},
+  {tip:'手机端进服后如果觉得界面太挤，先去设置里把界面尺寸调小一档，视野会舒服很多。'}
+ ]},
+
+/* ── 领地与家园 ── */
+{id:'land-claim', cat:'land', date:'2026-08-19',
+ title:'怎么圈一块自己的地',
+ summary:'用选区工具点两个对角，然后创建领地。圈好之后别人就动不了你的方块了。',
+ alias:'圈地 领地 保护 占地 建家 house 被拆 偷拆',
+ blocks:[
+  {p:'领地是保护自己财产的唯一手段。<b>没圈地的建筑不受保护</b>，被人拆了也很难追回，所以落地第一件事就是圈地。'},
+  {h:'圈地步骤'},
+  {steps:[
+    '找一块没被占的空地，确认周围没有别人的领地边界。',
+    '拿出选区工具，左键点一个角、右键点对角，把你要保护的范围框进去。',
+    '输入创建命令，给领地起个名字。',
+    '创建成功后中心会出现领地核心方块，这就是这块地的凭证。'
+  ]},
+  {cmd:'/res create <领地名>      创建领地\n/res auto <领地名>        以当前位置为中心自动圈一块\n/res info                 查看脚下领地的信息'},
+  {h:'圈地要注意的'},
+  {ul:[
+    '选区要<b>连高度一起框住</b>：只框地面的话，别人可以从你头顶或者脚下挖过来。',
+    '圈地按格数计费，范围越大越贵，先圈够用的，以后可以扩。',
+    '领地不能和已有领地重叠，靠太近会创建失败。'
+  ]},
+  {tip:'刚开荒建议先圈一块小的把睡觉和箱子保护起来，等规划清楚了再扩。'}
+ ]},
+
+{id:'land-home', cat:'land', date:'2026-08-17',
+ title:'怎么回家和设置传送点',
+ summary:'领地传送点回自己家，家点用来标记临时据点，两者搭配着用最省事。',
+ alias:'回家 传送 家点 tp home 传送点 落点',
+ blocks:[
+  {h:'回自己的领地'},
+  {p:'领地默认可以直接传送回去，忘记领地名的话先用列表命令看一眼。'},
+  {cmd:'/res list                 列出你所有的领地\n/res tp <领地名>          传送回该领地\n/res tpset               把当前站的位置设为该领地的落点'},
+  {tip:'落点默认在领地中心，可能会把你卡在墙里。进屋之后站在门口执行一次 tpset，之后回家就直接站在门前。'},
+  {h:'临时据点用家点'},
+  {p:'挖矿、开荒的时候经常要在两个地方往返，这时候用<b>家点</b>比领地传送灵活：站在想标记的地方设一个，回来直接传。'},
+  {cmd:'/sethome <名字>           在当前位置设一个家点\n/home <名字>              传送到该家点\n/delhome <名字>           删掉这个家点'},
+  {ul:['家点数量有上限，用完可以删掉旧的再设。','家点设在矿洞入口、刷怪塔、集市门口这类地方最实用。']}
+ ]},
+
+{id:'land-member', cat:'land', date:'2026-08-14',
+ title:'怎么把朋友加进领地一起建',
+ summary:'把人加成领地成员就能一起动方块，不加的话他连门都开不了。',
+ alias:'成员 朋友 合建 权限 加人 信任',
+ blocks:[
+  {p:'领地默认只有你自己能动方块。想和朋友合建，得把对方<b>加成成员</b>。'},
+  {cmd:'/res padd <领地名> <玩家ID>    添加成员\n/res pdel <领地名> <玩家ID>    移除成员'},
+  {h:'权限怎么给'},
+  {ul:[
+    '只是来参观：不用加，看看不影响。',
+    '要一起建：加成员，能放拆方块。',
+    '只想让他用箱子或门：单独开对应权限就行，不必给全套。'
+  ]},
+  {warn:'加成员等于把这块地的钥匙给他。合建拆伙的情况不少见，加之前想清楚，事后清算很麻烦。'},
+  {tip:'离线玩家的 ID 区分大小写，加错了会提示找不到玩家，照着对方的准确 ID 填。'}
+ ]}
+,
+
+/* ── 经济与交易 ── */
+{id:'money-earn', cat:'money', date:'2026-08-21',
+ title:'新手怎么赚第一笔金币',
+ summary:'签到、每日任务、卖农作物和矿物这几条路最稳，不吃技术也不吃运气。',
+ alias:'赚钱 挣钱 搞钱 来钱 收入 金币 没钱 穷 新手赚钱 前期',
+ blocks:[
+  {p:'刚进服身上没钱，圈地和买材料都卡手。下面几条是<b>稳定、不吃技术</b>的路子，按顺序做一轮，第一天就够圈地了。'},
+  {h:'每天固定能拿的'},
+  {ul:[
+    '<b>每日签到</b>：进服第一件事，纯白拿，别漏。',
+    '<b>每日任务</b>：难度分档，挑你手头能顺路完成的做，别硬啃高难度的。',
+    '<b>新手引导任务</b>：一次性的，奖励比日常厚，早做完早受益。'
+  ]},
+  {h:'靠产出换钱的'},
+  {ul:[
+    '<b>种田卖作物</b>：前期性价比最高。开一块地循环种收，配合骨粉效率翻倍。',
+    '<b>挖矿卖矿物</b>：顺路就能做，注意收购价会随大家的产量浮动。',
+    '<b>钓鱼</b>：挂在水边慢慢钓，适合一边聊天一边做的懒人玩法。'
+  ]},
+  {h:'赚得多一点的'},
+  {ul:[
+    '<b>摆摊卖给玩家</b>：把别人懒得刷的东西整理好卖出去，差价比卖给系统高。',
+    '<b>接建筑委托</b>：手上有活儿的话，帮人建房子是前期最快的来钱方式。'
+  ]},
+  {tip:'系统收购每天有上限，卖满了就换个品类，别死磕同一种。'},
+  {warn:'别信任何私聊你「先打钱后给货」的人。交易走摆摊或者找管理见证，被骗了很难追。'}
+ ]},
+
+{id:'money-pay', cat:'money', date:'2026-08-15',
+ title:'怎么给别人转账',
+ summary:'一条命令搞定，注意手续费由付款方承担，余额不够会转不出去。',
+ alias:'转账 给钱 打钱 汇款 手续费 税',
+ blocks:[
+  {cmd:'/pay <玩家ID> <金额>      转账给指定玩家\n/money                    查看自己的余额'},
+  {h:'手续费怎么算'},
+  {p:'转账会收一笔<b>手续费，由付款方承担</b>。也就是说你转 100，实际从余额里扣的是 100 加手续费，对方到手是整 100。'},
+  {ul:[
+    '余额只够本金、不够手续费时，会直接提示失败。',
+    '大额转账建议分两三笔，万一 ID 填错损失小一些。'
+  ]},
+  {warn:'ID 填错了钱是<b>追不回来</b>的，转之前复制粘贴对方 ID 核一遍。'}
+ ]},
+
+{id:'money-shop', cat:'money', date:'2026-08-12',
+ title:'摆摊和箱子商店怎么用',
+ summary:'摆摊适合零散好货，箱子商店适合大批量常规货，两者定位不一样。',
+ alias:'摆摊 商店 卖东西 开店 集市 交易 定价',
+ blocks:[
+  {h:'摆摊'},
+  {p:'摆摊摊位开在集市区，适合卖<b>零散但值钱</b>的东西：附魔书、稀有战利品、装饰方块。人流量大，成交快。'},
+  {steps:['到集市区找一个空摊位。','用摆摊命令打开自己的摊位面板。','把要卖的东西放进去并标价。','摊位有展示位，把最想卖的摆前面。']},
+  {cmd:'/shop                     打开摆摊面板'},
+  {h:'箱子商店'},
+  {p:'箱子商店开在自己领地里，适合卖<b>大批量常规货</b>：石头、木头、农作物。挂上就不用管，买家自己来。'},
+  {ul:['商店的手续费由<b>收款方</b>承担，和转账相反。','把商店开在传送点附近，别人才找得到。']},
+  {tip:'定价前先去集市转一圈看看同类货什么价。挂得比行情高一截，货会一直躺着。'}
+ ]},
+
+/* ── 玩法与世界 ── */
+{id:'play-worlds', cat:'play', date:'2026-08-20',
+ title:'几个世界分别玩什么',
+ summary:'生存区正经开荒，养老区无死亡惩罚，独立世界给红石和大型建筑用。',
+ alias:'世界 分区 生存 养老 独立 区别 玩什么 去哪',
+ blocks:[
+  {p:'小镇分了几个世界，规则各不一样。搞清楚区别再决定主力落在哪，省得来回搬家。'},
+  {h:'生存区'},
+  {ul:['正经开荒玩法，有死亡惩罚。','圈地按完整高度计算。','大部分人的主力世界，集市和公共设施都在这边。']},
+  {h:'养老区'},
+  {ul:['<b>没有死亡惩罚</b>，探索起来心理压力小。','难度较低，地形做过调整，风景比生存区好。','种植、钓鱼这类休闲玩法集中在这边。']},
+  {h:'独立世界'},
+  {ul:['给<b>红石玩家和大型建筑</b>准备的独立空间。','不影响主世界性能，机器可以放开一点建。','需要一定条件才能开启，具体看服内公告。']},
+  {tip:'拿不定主意就先在养老区住一阵。没有死亡惩罚，摸清系统再去生存区正式开荒。'}
+ ]},
+
+{id:'play-quest', cat:'play', date:'2026-08-13',
+ title:'任务系统怎么上手',
+ summary:'每日任务刷新快、来钱稳；主线任务负责带你认路；生涯任务是长线目标。',
+ alias:'任务 每日任务 主线 生涯 签到 奖励',
+ blocks:[
+  {p:'任务是前期最稳的收入来源，分三类，节奏完全不同。'},
+  {h:'每日任务'},
+  {ul:[
+    '每天零点刷新，手动刷新次数有限。',
+    '难度分档，越难奖励越高。',
+    '<b>不用提前接</b>，达成条件会自动记录进度。'
+  ]},
+  {tip:'挑任务的诀窍是「顺路」：本来就要去挖矿，就接挖矿的；本来要种地，就接种地的。专门为任务跑一趟通常不值。'},
+  {h:'主线任务'},
+  {p:'负责带你把主城几个功能点走一遍，奖励不算多但能快速认路，新人建议先做完。'},
+  {h:'生涯任务'},
+  {p:'长线目标，分阶段推进，奖励最厚。不用刻意刷，正常玩着就会慢慢完成。'},
+  {warn:'有些任务要求提交特定物品，交之前先确认背包里那件不是你要留着用的。'}
+ ]},
+
+/* ── 建造与红石 ── */
+{id:'build-redstone', cat:'build', date:'2026-08-18',
+ title:'红石机器能建到多大',
+ summary:'常规自动化没问题，但有元件数量上限，超大型机器请去独立世界。',
+ alias:'红石 生电 自动化 机器 刷怪塔 卡服 元件 漏斗',
+ blocks:[
+  {p:'小镇<b>支持红石自动化</b>，但不是专业生电服。为了保证所有人都不卡，机器规模有上限。'},
+  {h:'规模限制'},
+  {ul:[
+    '单区块内的红石元件和漏斗都有数量上限，大机器请<b>分区块建</b>。',
+    '常规规模的农场、刷怪塔、分类系统都没问题。',
+    '超大型工程（跨维度刷怪塔、大规模生物堆叠）请去独立世界。'
+  ]},
+  {h:'明确禁止的'},
+  {ul:[
+    '故意用高频元件制造卡顿的装置。',
+    '以卡服、卡人为目的的机器。',
+    '无人看管长期空转、纯粹浪费性能的装置。'
+  ]},
+  {warn:'刻意造卡服装置是<b>直接封禁</b>的红线，不接受「我就试试」的解释。发现有人在建请截图举报。'},
+  {tip:'不确定自己的设计会不会超标，建之前把图发群里问一句，比拆了重建省事。'}
+ ]},
+
+{id:'build-tools', cat:'build', date:'2026-08-11',
+ title:'投影和连锁挖矿怎么用',
+ summary:'投影需要额外权限才能快速放置，连锁挖矿蹲下开启、按次计费。',
+ alias:'投影 简单放置 快速放置 连锁挖矿 litematica 建筑工具',
+ blocks:[
+  {h:'投影快速放置'},
+  {p:'投影模组本身可以自由使用（属于客户端功能），但<b>快速放置</b>默认是关的，需要额外权限才能绕过限制。'},
+  {ul:['权限可以在服内商店购买，也可能从活动奖励里获得。','权限通常按时长计算，用之前把材料备齐再开，别浪费时间。']},
+  {warn:'放置速度不要拉太满。速度过快会被判定为异常操作直接踢出去，稳一点反而更快建完。'},
+  {h:'连锁挖矿'},
+  {p:'蹲下即可开启连锁挖矿，一次挖穿整条矿脉。每次触发会<b>扣一点金币</b>，不用的时候站直就关了。'},
+  {tip:'挖石头这类不值钱的东西别开连锁，手续费可能比矿物本身还贵。'}
+ ]},
+
+/* ── 设置与疑难 ── */
+{id:'fix-pack', cat:'trouble', date:'2026-08-19',
+ title:'菜单显示成乱码方框怎么办',
+ summary:'资源包没加载成功。允许服务器资源包，必要时清掉旧的缓存重下一次。',
+ alias:'资源包 材质包 白纸 方框 乱码 生僻字 菜单 字体',
+ blocks:[
+  {p:'菜单变成白纸、方框或者一堆看不懂的字，几乎都是<b>资源包没加载上</b>。服内菜单靠资源包里的自定义字体渲染。'},
+  {h:'先试这一步'},
+  {steps:[
+    '退到多人游戏列表。',
+    '选中服务器条目，点「编辑」。',
+    '把「服务器资源包」改成<b>启用</b>。',
+    '重新进服，等资源包下载完。'
+  ]},
+  {h:'还是不行'},
+  {ul:[
+    '清掉旧的资源包缓存：进游戏目录，把版本文件夹下的下载缓存清空后重进。',
+    '换个网络重下一次，下载中断也会导致加载失败。',
+    '确认版本号对得上——版本不对时资源包经常一起出问题。'
+  ]},
+  {tip:'手机端如果字体错位，多半是显卡驱动对某些字体渲染支持不好，换个启动器的渲染器试试。'}
+ ]},
+
+{id:'fix-fly', cat:'trouble', date:'2026-08-10',
+ title:'飞行怎么开，时长从哪来',
+ summary:'两条飞行命令，一条消耗时长一条不消耗。落地时不计时。',
+ alias:'飞行 飞 fly 时长 悬空',
+ blocks:[
+  {cmd:'/fly                      不消耗时长的飞行（限特定权限）\n/flyd                     消耗飞行时长的飞行（所有人可用）'},
+  {h:'时长怎么算'},
+  {ul:[
+    '只有<b>真正飞起来</b>的时候才扣时长，落在地上站着不扣。',
+    '时长可以通过每日签到累积，也可以在服内商店购买。'
+  ]},
+  {h:'常见疑问'},
+  {p:'「我明明有免费飞行权限，为什么还在扣时长？」——因为你先开了消耗型飞行。先把它关掉，再开免费的那条，才不会继续计时。'},
+  {tip:'挂机之前记得把飞行关掉，站在地上不扣，但悬在空中会一直烧时长。'}
+ ]},
+
+{id:'fix-skin', cat:'trouble', date:'2026-08-09',
+ title:'皮肤不显示怎么处理',
+ summary:'正版账号自动同步；离线账号要先在皮肤站上传，再在服内刷新一次。',
+ alias:'皮肤 换皮肤 史蒂夫 显示不出来 skin',
+ blocks:[
+  {p:'皮肤显示成默认史蒂夫，通常分两种情况。'},
+  {h:'正版账号'},
+  {p:'皮肤会自动同步。如果没显示，退出重进一次一般就好了，服务器有缓存。'},
+  {h:'离线账号'},
+  {steps:['在皮肤站注册并上传你的皮肤。','确认皮肤站用的 ID 和你进服的 ID <b>完全一致</b>（含大小写）。','进服后执行刷新命令让服务器重新拉取。']},
+  {cmd:'/skin update              刷新自己的皮肤'},
+  {tip:'看不到别人的皮肤但自己的正常，那是你本地的问题，重进一次即可，不用找管理。'}
+ ]},
+
+/* ── 规则与反馈 ── */
+{id:'rule-basic', cat:'rule', date:'2026-08-21',
+ title:'服内红线与举报流程',
+ summary:'外挂、偷拆、卡服装置是直接封禁的三条红线。举报请带截图或录屏。',
+ alias:'规则 服规 红线 封禁 举报 外挂 作弊 偷东西 违规',
+ blocks:[
+  {p:'小镇是审核制入住，绝大多数人都很好相处。规则写出来只是为了处理少数情况，不是不信任大家。'},
+  {h:'直接封禁的红线'},
+  {ul:[
+    '<b>使用外挂</b>：透视、飞行、自动瞄准等一切作弊工具。',
+    '<b>偷拆和偷盗</b>：动别人没授权的方块和箱子。',
+    '<b>恶意卡服</b>：故意建造影响所有人的卡顿装置。',
+    '<b>骚扰他人</b>：人身攻击、刷屏、恶意追杀。'
+  ]},
+  {h:'怎么举报'},
+  {steps:[
+    '先<b>截图或录屏</b>，这是唯一有效的证据，口头描述很难处理。',
+    '记下时间、地点（坐标最好）和对方 ID。',
+    '私聊管理员或在群里反馈，不要在公共频道对骂。'
+  ]},
+  {warn:'不要自己动手报复。以暴制暴的结果通常是两个人一起被处理，吃亏的还是你。'},
+  {tip:'不确定某件事算不算违规，先问一句。事前问一句永远比事后申诉省事。'}
+ ]},
+
+{id:'rule-contact', cat:'rule', date:'2026-08-08',
+ title:'怎么联系管理组',
+ summary:'日常问题群里问最快，涉及隐私或纠纷的私聊管理员。',
+ alias:'联系 管理 服主 反馈 求助 问问题 群号 QQ',
+ blocks:[
+  {h:'按事情类型选渠道'},
+  {ul:[
+    '<b>玩法疑问</b>：群里直接问，通常几分钟就有人答，也建议先搜一下 Wiki。',
+    '<b>Bug 反馈</b>：群里发，带上截图和能复现的步骤。',
+    '<b>玩家纠纷、涉及隐私</b>：私聊管理员，别在公共频道展开。',
+    '<b>建议和新玩法想法</b>：群里提，被采纳的不少。'
+  ]},
+  {h:'怎么问能更快得到答复'},
+  {p:'把<b>你做了什么、期望什么、实际发生了什么</b>三句话说清楚，比一句「坏了」快十倍。附上截图更好。'},
+  {cmd:'玩家 QQ 群：{QQ}'},
+  {tip:'管理员也是玩家，不是客服。晚上人多的时候响应最快，白天可能要等一会儿。'}
+ ]}
+
+]};
+
+/* ══════════════════════════ 以下为实现，一般不用改 ══════════════════════════ */
+var ADDR=SITE.host+':'+SITE.port;
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+/* 词条正文允许 <b>，其余标签转义 */
+function rich(s){
+  return esc(s).replace(/&lt;b&gt;/g,'<b>').replace(/&lt;\/b&gt;/g,'</b>');
+}
+/* 占位符替换 */
+function fill(s){
+  return String(s).replace(/\{HOST\}/g,SITE.host).replace(/\{PORT\}/g,SITE.port)
+    .replace(/\{VER\}/g,SITE.version).replace(/\{QQ\}/g,SITE.qq).replace(/\{NAME\}/g,SITE.name);
+}
+var CATS=WIKI.categories, ARTS=WIKI.articles;
+
+/* ───── 两个视图共用这一份文件 ─────
+   wiki.html            → 新 Wiki，只显示数据库里的 markdown 词条（可在线编辑）
+   wiki.html?p=manual   → 游玩手册，只显示写死在本文件里的老词条（不可编辑）
+
+   为什么不拆成两个 html：老词条正文有 60 多 KB，复制一份等于同一批内容
+   维护两处。靠 MODE 过滤同一个数组更省事，两边内容互不可见。
+
+   数据库词条由 wiki-md.js 追加进 ARTS 时会带 _db:true 标记，
+   这就是区分新老的唯一依据。 */
+var MODE = /[?&]p=manual/.test(location.search) ? 'manual' : 'wiki';
+
+/* 当前视图应该看到的词条。所有列表、搜索、计数都必须走这里，
+   直接用 ARTS 会把两边的内容混在一起。 */
+function pool(){
+  return ARTS.filter(function(a){ return MODE==='manual' ? !a._db : !!a._db; });
+}
+function catOf(id){for(var i=0;i<CATS.length;i++)if(CATS[i].id===id)return CATS[i];return {id:id,name:id,desc:''};}
+function artsOf(cid){return pool().filter(function(a){return a.cat===cid;});}
+/* 按 id 查词条时不限制模式 —— 否则从手册的链接跳到 Wiki 词条会 404。
+   真正的隔离在列表和搜索那一层。 */
+function artById(id){for(var i=0;i<ARTS.length;i++)if(ARTS[i].id===id)return ARTS[i];return null;}
+/* 把 blocks 拼成纯文本，供搜索用 */
+function plain(a){
+  var out=[a.title,a.summary];
+  a.blocks.forEach(function(b){
+    if(b.md)out.push(b.md);          // markdown 词条：原文直接进搜索索引
+    if(b.h)out.push(b.h);
+    if(b.p)out.push(b.p);
+    if(b.tip)out.push(b.tip);
+    if(b.warn)out.push(b.warn);
+    if(b.cmd)out.push(b.cmd);
+    if(b.ul)out.push(b.ul.join(' '));
+    if(b.steps)out.push(b.steps.join(' '));
+  });
+  return fill(out.join(' ')).replace(/<\/?b>/g,'');
+}
+var INDEX=pool().map(function(a){
+  /* alias 是补充搜索词：中文是子串匹配，标题里没原样出现的说法要靠它兜住
+     （比如词条叫「赚第一笔金币」，用户搜的却是「赚钱」）*/
+  return {id:a.id,title:a.title,summary:a.summary,cat:catOf(a.cat).name,
+          alias:a.alias||'',text:plain(a)+' '+(a.alias||'')};
+});
+
+/* 暴露给 wiki-md.js：数据库词条加载完后要能并进来并重建搜索索引。
+   INDEX 只在启动时算一次，所以必须提供重建入口，
+   否则新词条搜不到。 */
+window.ARTS = ARTS;
+window.rebuildWikiIndex = function(){
+  INDEX.length = 0;
+  pool().forEach(function(a){
+    INDEX.push({id:a.id,title:a.title,summary:a.summary,cat:catOf(a.cat).name,
+                alias:a.alias||'',text:plain(a)+' '+(a.alias||'')});
+  });
+  var dc=$('docCount'); if(dc)dc.textContent=pool().length;
+  /* 数据库词条到齐后重画一次。手册模式不受影响（pool 过滤掉了），
+     但 Wiki 模式首屏是空的，必须重画才能看到内容。 */
+  if(MODE==='wiki' && typeof route==='function') route();
+};
+window.wikiMode = function(){ return MODE; };
+
+/* ───── 站点信息填充 ───── */
+(function(){
+  var isM = MODE==='manual';
+  document.title=(isM?'游玩手册':'Wiki')+' · '+SITE.name;
+  $('wkTitle').textContent=isM?(SITE.name+' 游玩手册'):(SITE.name+' Wiki');
+  $('wkKicker').textContent=isM?'游玩手册 · MANUAL':(SITE.name.toUpperCase()+' WIKI');
+  $('brandName').textContent=SITE.name;
+  $('navIp').textContent=ADDR;
+  /* 端口已从 CONFIG 移除，这里跟首页保持一致只显示域名 */
+  $('drawerIp').textContent=SITE.host;
+  $('footIp').textContent=SITE.host;
+  $('footSub').textContent='QQ 群 '+SITE.qq;
+  $('docCount').textContent=pool().length;
+
+  /* 面包屑第一级、侧栏和底部的行动区，都要跟着模式变。
+     手册是只读的，不该出现「参与贡献 / 创建新词条」。 */
+  var ch=$('crumbHome'); if(ch) ch.textContent=isM?'游玩手册':'Wiki';
+  if(isM){
+    var cb=$('contribBtn');
+    if(cb){ cb.textContent='去 Wiki 写词条'; cb.setAttribute('href','wiki.html'); }
+    var sec=document.querySelector('.wk-contrib');
+    if(sec){
+      var h2=sec.querySelector('h2'), p=sec.querySelector('p'), btn=$('contribBtn2');
+      if(h2) h2.textContent='这里是只读的游玩手册';
+      if(p)  p.textContent='手册收录的是相对稳定的基础教程。想补充新内容、或者纠正写错的地方，请去 Wiki——那边可以直接在网页上编辑，改动有版本记录。';
+      if(btn){ btn.textContent='前往 Wiki'; btn.onclick=function(){location.href='wiki.html';}; }
+    }
+  }
+
+  /* 导航高亮跟着当前视图走。默认标记在 Wiki 上，
+     手册模式下要挪过去，否则两个页面看起来都停在 Wiki。 */
+  if(isM){
+    [['nlWiki','nlManual'],['dlWiki','dlManual']].forEach(function(p){
+      var w=$(p[0]), m=$(p[1]);
+      if(w) w.classList.remove('act');
+      if(m) m.classList.add('act');
+    });
+  }
+})();
+
+/* ───── 侧栏目录树 ───── */
+function renderTree(activeId){
+  var act=activeId?artById(activeId):null;
+  var html=CATS.map(function(c){
+    var list=artsOf(c.id);
+    var open=act?act.cat===c.id:false;
+    return '<div class="wk-group'+(open?' open':'')+'" data-cat="'+c.id+'">'+
+      '<div class="wk-group-row">'+
+        '<a class="wk-cat-link'+(open?' active':'')+'" data-cat="'+c.id+'">'+
+          esc(c.name)+' <span class="wk-cat-n">· '+list.length+'</span></a>'+
+        '<button class="wk-toggle" type="button" aria-label="展开或收起 '+esc(c.name)+'">⌄</button>'+
+      '</div>'+
+      '<div class="wk-list">'+
+        list.map(function(a){
+          return '<a data-art="'+a.id+'"'+(act&&act.id===a.id?' class="active"':'')+'>'+esc(a.title)+'</a>';
+        }).join('')+
+      '</div></div>';
+  }).join('');
+  $('wkTree').innerHTML=html;
+}
+
+/* ───── 总览：分类卡片 + 最近更新 ───── */
+function renderOverview(){
+  $('wkCatGrid').innerHTML=CATS.map(function(c){
+    var list=artsOf(c.id);
+    var show=list.slice(0,5);
+    return '<article class="wk-card">'+
+      '<div class="wk-card-h"><h2>'+esc(c.name)+'</h2>'+
+        '<span class="wk-card-n">'+list.length+' 篇</span></div>'+
+      '<p>'+esc(c.desc)+'</p>'+
+      '<div class="wk-docs">'+
+        show.map(function(a){return '<a data-art="'+a.id+'">'+esc(a.title)+'</a>';}).join('')+
+      '</div>'+
+      (list.length>show.length
+        ? '<a class="wk-card-more" data-cat="'+c.id+'">查看全部 '+list.length+' 篇 →</a>'
+        : '')+
+      '</article>';
+  }).join('');
+
+  var recent=pool().slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0;}).slice(0,8);
+  $('wkRecent').innerHTML=recent.map(function(a){
+    return '<a class="wk-row" data-art="'+a.id+'">'+
+      '<strong>'+esc(a.title)+'</strong>'+
+      '<span>'+esc(catOf(a.cat).name)+' · '+esc(a.date)+'</span></a>';
+  }).join('');
+}
+
+/* ───── 词条正文渲染 ───── */
+function renderDoc(a){
+  var c=catOf(a.cat);
+  var html='<div class="wk-doc-cat">'+esc(c.name)+'</div>'+
+    '<h1>'+esc(a.title)+'</h1>'+
+    '<div class="wk-doc-meta">最后更新 '+esc(a.date)+' · 由小镇管理组与玩家共同维护</div>'+
+    '<div class="wk-doc-sum">'+rich(fill(a.summary))+'</div>';
+  a.blocks.forEach(function(b){
+    /* md 分支：数据库里的 markdown 词条走这里。
+       WikiMD.render 内部先转义再套格式，不接受任何原始 HTML。
+       wiki-md.js 没加载时退化成纯文本显示，不会漏出未转义内容。 */
+    if(b.md){
+      html += window.WikiMD ? window.WikiMD.render(b.md)
+                            : '<pre style="white-space:pre-wrap">'+esc(b.md)+'</pre>';
+    }
+    if(b.h)     html+='<h2>'+esc(fill(b.h))+'</h2>';
+    if(b.p)     html+='<p>'+rich(fill(b.p))+'</p>';
+    if(b.ul)    html+='<ul>'+b.ul.map(function(x){return '<li>'+rich(fill(x))+'</li>';}).join('')+'</ul>';
+    if(b.steps) html+='<ol class="wk-steps">'+b.steps.map(function(x){return '<li>'+rich(fill(x))+'</li>';}).join('')+'</ol>';
+    if(b.cmd)   html+='<code class="wk-cmd">'+esc(fill(b.cmd))+'</code>';
+    if(b.tip)   html+='<div class="wk-note tip"><span class="wk-note-t">提示</span>'+rich(fill(b.tip))+'</div>';
+    if(b.warn)  html+='<div class="wk-note warn"><span class="wk-note-t">注意</span>'+rich(fill(b.warn))+'</div>';
+  });
+  $('wkDoc').innerHTML=html;
+
+  $('crumbCat').textContent=c.name;
+  $('crumbCat').dataset.cat=c.id;
+  $('crumbTitle').textContent=a.title;
+
+  /* 上下篇：在同分类内按目录顺序 */
+  var sib=artsOf(a.cat), i=sib.indexOf(a);
+  var prev=i>0?sib[i-1]:null, next=i<sib.length-1?sib[i+1]:null;
+  $('wkPrevNext').innerHTML=
+    (prev?'<a class="wk-nav-b" data-art="'+prev.id+'"><div class="l">← 上一篇</div><div class="t">'+esc(prev.title)+'</div></a>'
+        :'<span class="wk-nav-b ph"></span>')+
+    (next?'<a class="wk-nav-b next" data-art="'+next.id+'"><div class="l">下一篇 →</div><div class="t">'+esc(next.title)+'</div></a>'
+        :'<span class="wk-nav-b ph"></span>');
+}
+
+/* ───── 路由：#a/<词条id> 读词条，#c/<分类id> 只看该分类，空 = 总览 ───── */
+function showOverview(filterCat){
+  document.body.classList.remove('reading');
+  var all=$('wkCatGrid'), title=$('wkOvTitle');
+  if(filterCat){
+    var c=catOf(filterCat), list=artsOf(filterCat);
+    title.textContent=c.name+' · '+list.length+' 篇';
+    all.innerHTML='<article class="wk-card" style="grid-column:1/-1">'+
+      '<div class="wk-card-h"><h2>'+esc(c.name)+'</h2>'+
+        '<span class="wk-card-n">'+list.length+' 篇</span></div>'+
+      '<p>'+esc(c.desc)+'</p><div class="wk-docs">'+
+      list.map(function(a){return '<a data-art="'+a.id+'">'+esc(a.title)+'</a>';}).join('')+
+      '</div><a class="wk-card-more" data-cat="__all">← 返回全部分类</a></article>';
+  }else{
+    title.textContent=(MODE==='manual'?'游玩手册':'Wiki')+' 分类总览';
+    /* Wiki 模式下词条全部来自数据库。接口还没部署、或者一条都还没写时，
+       这里会是空的 —— 给一句说明，而不是留一片空白让人以为页面坏了。 */
+    if(MODE==='wiki' && !pool().length){
+      all.innerHTML='<article class="wk-card" style="grid-column:1/-1">'+
+        '<div class="wk-card-h"><h2>还没有词条</h2></div>'+
+        '<p>这里的内容存在数据库里，可以由编辑组直接在网页上用 markdown 编写，'+
+        '每次修改都有版本记录，改错了能一键回退。</p>'+
+        '<p style="margin-top:10px">想看原来那些进服教程、领地指令、常见问题，'+
+        '它们都在 <a class="wk-card-more" href="wiki.html?p=manual" '+
+        'style="display:inline;padding:0">游玩手册 →</a></p></article>';
+      $('wkRecent').innerHTML='';
+      return;
+    }
+    renderOverview();
+  }
+  renderTree(null);
+  if(filterCat){
+    var g=$('wkTree').querySelector('.wk-group[data-cat="'+filterCat+'"]');
+    if(g){g.classList.add('open');
+      var cl=g.querySelector('.wk-cat-link'); if(cl)cl.classList.add('active');}
+  }
+}
+function showArticle(id){
+  var a=artById(id);
+  if(!a){location.hash='';return;}
+  renderDoc(a);
+  renderTree(id);
+  document.body.classList.add('reading');
+  window.scrollTo(0,0);
+}
+function route(){
+  var h=location.hash.replace(/^#/,'');
+  closeSide();
+  if(h.indexOf('a/')===0){showArticle(h.slice(2));}
+  else if(h.indexOf('c/')===0){showOverview(h.slice(2));}
+  else{showOverview(null);}
+}
+window.addEventListener('hashchange',route);
+
+/* 全局点击代理：data-art 打开词条，data-cat 打开分类 */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-art]');
+  if(t){e.preventDefault();location.hash='a/'+t.dataset.art;return;}
+  var c=e.target.closest('[data-cat]');
+  if(c&&c.dataset.cat){
+    if(c.classList.contains('wk-toggle'))return;
+    e.preventDefault();
+    location.hash=c.dataset.cat==='__all'?'':'c/'+c.dataset.cat;
+    return;
+  }
+});
+/* 目录树折叠箭头 */
+$('wkTree').addEventListener('click',function(e){
+  var b=e.target.closest('.wk-toggle');
+  if(!b)return;
+  e.preventDefault();e.stopPropagation();
+  b.closest('.wk-group').classList.toggle('open');
+});
+$('crumbHome').addEventListener('click',function(e){e.preventDefault();location.hash='';});
+
+/* ───── 搜索 ───── */
+(function(){
+  var input=$('wkSearch'), panel=$('wkPanel'), sel=-1, hits=[];
+  function mark(text,q){
+    var i=text.toLowerCase().indexOf(q.toLowerCase());
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+'<mark>'+esc(text.slice(i,i+q.length))+'</mark>'+esc(text.slice(i+q.length));
+  }
+  /* 摘一段命中关键词的上下文出来 */
+  function snippet(text,q){
+    var i=text.toLowerCase().indexOf(q.toLowerCase());
+    if(i<0)return esc(text.slice(0,70))+'…';
+    var s=Math.max(0,i-22), e=Math.min(text.length,i+q.length+48);
+    return (s>0?'…':'')+mark(text.slice(s,e),q)+(e<text.length?'…':'');
+  }
+  function score(it,q){
+    var lq=q.toLowerCase();
+    if(it.title.toLowerCase().indexOf(lq)>=0)return 3;
+    if(it.summary.toLowerCase().indexOf(lq)>=0)return 2;
+    if(it.alias.toLowerCase().indexOf(lq)>=0)return 2;
+    if(it.text.toLowerCase().indexOf(lq)>=0)return 1;
+    if(it.cat.toLowerCase().indexOf(lq)>=0)return 1;
+    return 0;
+  }
+  function close(){panel.classList.remove('open');sel=-1;}
+  /* 兜底：整串搜不到时，把查询切成 2 字片段，按命中片段数排序
+     （中文没有空格分词，「世界区别」这种双概念短语只能这样拆）*/
+  function fuzzy(q){
+    var grams=[];
+    for(var i=0;i<q.length-1;i++){var g=q.slice(i,i+2).trim();if(g.length===2)grams.push(g.toLowerCase());}
+    if(!grams.length)return [];
+    return INDEX.map(function(it){
+      var hay=(it.title+' '+it.summary+' '+it.alias+' '+it.text).toLowerCase(), n=0;
+      grams.forEach(function(g){if(hay.indexOf(g)>=0)n++;});
+      return {it:it,s:n};
+    }).filter(function(x){return x.s>=Math.max(1,Math.ceil(grams.length/2));})
+      .sort(function(a,b){return b.s-a.s;})
+      .slice(0,6).map(function(x){return x.it;});
+  }
+  function run(){
+    var q=input.value.trim();
+    if(!q){close();return;}
+    hits=INDEX.map(function(it){return {it:it,s:score(it,q)};})
+      .filter(function(x){return x.s>0;})
+      .sort(function(a,b){return b.s-a.s;})
+      .slice(0,8).map(function(x){return x.it;});
+    if(!hits.length)hits=fuzzy(q);
+    if(!hits.length){
+      panel.innerHTML='<div class="wk-empty">没找到「'+esc(q)+'」相关的词条。<br>'+
+        '换个说法试试，或者到 QQ 群 '+esc(SITE.qq)+' 里问一句。</div>';
+      panel.classList.add('open');return;
+    }
+    panel.innerHTML=hits.map(function(it,i){
+      return '<a class="wk-hit'+(i===sel?' active':'')+'" data-art="'+it.id+'">'+
+        '<div class="wk-hit-path">'+esc(it.cat)+'</div>'+
+        '<div class="wk-hit-title">'+mark(it.title,q)+'</div>'+
+        '<div class="wk-hit-desc">'+snippet(it.summary,q)+'</div></a>';
+    }).join('');
+    panel.classList.add('open');
+  }
+  function move(d){
+    if(!hits.length)return;
+    sel=(sel+d+hits.length)%hits.length;
+    var items=panel.querySelectorAll('.wk-hit');
+    items.forEach(function(el,i){el.classList.toggle('active',i===sel);});
+  }
+  input.addEventListener('input',function(){sel=-1;run();});
+  input.addEventListener('focus',function(){if(input.value.trim())run();});
+  input.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'){e.preventDefault();move(1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();move(-1);}
+    else if(e.key==='Enter'){
+      var pick=sel>=0?hits[sel]:hits[0];
+      if(pick){e.preventDefault();location.hash='a/'+pick.id;input.blur();close();}
+    }
+    else if(e.key==='Escape'){close();input.blur();}
+  });
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.wk-search'))close();
+  });
+})();
+
+/* ───── 移动端目录抽屉 ───── */
+function closeSide(){$('wkSide').classList.remove('open');}
+$('wkDirBtn').addEventListener('click',function(e){
+  e.stopPropagation();
+  $('wkSide').classList.toggle('open');
+});
+document.addEventListener('click',function(e){
+  var side=$('wkSide');
+  if(side.classList.contains('open')&&!e.target.closest('.wk-side')&&!e.target.closest('#wkDirBtn')){
+    closeSide();
+  }
+});
+
+/* ───── 贡献按钮 ───── */
+function contribHint(){
+  showToast('想加词条？往 wiki.html 的 WIKI.articles 里追加一条就行');
+}
+$('contribBtn').addEventListener('click',function(e){e.preventDefault();contribHint();});
+$('contribBtn2').addEventListener('click',contribHint);
+
+/* ───── 昼夜切换（与首页共用 localStorage 的 town-night）───── */
+(function(){
+  var saved=null;
+  try{saved=localStorage.getItem('town-night');}catch(e){}
+  var h=new Date().getHours();
+  var night=saved!==null?saved==='1':(h>=19||h<6);
+  if(night)document.body.classList.add('night');
+})();
+function applyNight(n){
+  document.body.classList.toggle('night',n);
+  try{localStorage.setItem('town-night',n?'1':'0');}catch(e){}
+}
+function toggleNight(ev){
+  ev=ev||window.event;
+  var willNight=!document.body.classList.contains('night');
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!document.startViewTransition||reduce){applyNight(willNight);return;}
+  var x=(ev&&ev.clientX)?ev.clientX:window.innerWidth-48;
+  var y=(ev&&ev.clientY)?ev.clientY:42;
+  var endR=Math.hypot(Math.max(x,window.innerWidth-x),Math.max(y,window.innerHeight-y));
+  var t=document.startViewTransition(function(){
+    document.documentElement.classList.add('vt-active');applyNight(willNight);});
+  t.ready.then(function(){
+    document.documentElement.animate(
+      {clipPath:['circle(0px at '+x+'px '+y+'px)','circle('+endR+'px at '+x+'px '+y+'px)']},
+      {duration:640,easing:'cubic-bezier(.4,0,.2,1)',pseudoElement:'::view-transition-new(root)'});
+  });
+  (t.finished||Promise.resolve()).then(
+    function(){document.documentElement.classList.remove('vt-active');},
+    function(){document.documentElement.classList.remove('vt-active');});
+}
+
+/* ───── 导航抽屉 ───── */
+function closeDrawer(){
+  $('ham').classList.remove('open');
+  $('drawer').classList.remove('open');
+  $('dov').classList.remove('open');
+  document.body.style.overflow='';
+}
+$('ham').addEventListener('click',function(){
+  var o=this.classList.toggle('open');
+  $('drawer').classList.toggle('open',o);
+  $('dov').classList.toggle('open',o);
+  document.body.style.overflow=o?'hidden':'';
+});
+$('dov').addEventListener('click',closeDrawer);
+$('drawer').querySelectorAll('a').forEach(function(a){a.addEventListener('click',closeDrawer);});
+
+/* ───── 复制地址 + toast ───── */
+function copyIP(el){
+  function done(){
+    showToast('地址已复制：'+ADDR);
+    if(!el)return;
+    el.classList.add('ok');
+    setTimeout(function(){el.classList.remove('ok');},2000);
+  }
+  function fallback(){
+    var ta=document.createElement('textarea');
+    ta.value=ADDR;ta.setAttribute('readonly','');
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);done();
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ADDR).then(done).catch(fallback);
+  }else{fallback();}
+}
+function showToast(m){
+  var t=$('toast');
+  t.textContent=m;t.classList.add('show');
+  clearTimeout(t._h);
+  t._h=setTimeout(function(){t.classList.remove('show');},2400);
+}
+
+/* ───── 启动 ───── */
+route();
+</script>
+<!-- 登录（AuthMe）。接口没部署时会自动隐藏入口，页面照常可用 -->
+<script src="auth.js" defer></script>
+<!-- markdown 渲染 + 在线编辑。接口没部署时静默跳过，静态词条照常可读 -->
+<script src="wiki-md.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,1679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>永恒流光 · 一座住着朋友的 Minecraft 小镇</title>
+<meta name="description" content="永恒流光 —— 一座住着朋友的 Minecraft 小镇。原版生存、田园养老、生电独立世界与 RPG 副本，慢慢生活，欢迎回家。">
+<meta name="theme-color" content="#f4a521">
+<meta property="og:type" content="website">
+<meta property="og:title" content="永恒流光 · 一座住着朋友的 Minecraft 小镇">
+<meta property="og:description" content="原版生存、田园养老、生电独立世界与 RPG 副本。慢慢生活，欢迎回家。">
+<!--
+  ============================================================
+  这是一份纯静态、单文件的小镇主页模板（无后端、无外链图片）。
+  所有画面由 CSS / SVG 绘制，直接双击打开即可预览。
+
+  ── 怎么改成你自己的服务器 ──
+  只需改 <script> 顶部的 CONFIG 对象，全部文案与数据都从那里读：
+
+    name1 / name2   镇名，拆成两半是为了让后半截套上金色渐变
+    tagline         首屏那句标语
+    host            服务器地址（导航、首屏、页脚会自动同步）
+    port            端口，可选。默认 25565 就留空，整站都不显示端口；
+                    改过端口才填，填了会自动显示在地址后面
+    qq              玩家 QQ 群号
+    openDate        开服日期，「稳定运营 N 天」按这个自动算，不用手填
+    version         游戏版本号
+    onlineBase      在线人数的展示基准值（详见下方说明）
+    hardware        硬件规格条，数组，想写几项写几项
+    modes           玩法卡片
+    showcase        建筑欣赏跑马灯
+    guilds          公会列表
+    news            公告列表
+    wiki            首页那张卡上的快捷问答
+    residents       小镇居民（决定小人的配色与对话）
+
+  ── 关于在线人数 ──
+  纯静态页面没有后端，查不到服务器的真实人数，所以默认是展示用的
+  模拟数据（在 onlineBase 附近轻微浮动）。想接真实数据：把 fakeOnline
+  改成 false，并把 statusApi 填成一个返回 {online, players:{online}}
+  的查询接口，页面会自动改用真实值，查询失败时会显示「状态未知」。
+
+  ── 玩法卡片和跑马灯的配图 ──
+  没有用任何图片，全部是 CSS 画的场景。可选的 art 值有：
+    village(黄昏村落) farm(田园农场) redstone(红石夜景) dungeon(地牢)
+    lake(湖畔) rain(雨夜) temple(东方宫阙) sky(天空楼阁)
+  想加新场景，在 CSS 里照着 .art-xxx 的写法补一条即可。
+
+  ── 首屏的像素小人 ──
+  也不是贴图，是纯 CSS 拼的关节小人，靠这几个变量上色：
+    --skin 皮肤  --hair 头发  --shirt 上衣  --pants 裤子  --shoe 鞋
+  姿势由 class 决定，现成的有：wave(挥手) idle(待机) cheer(欢呼)
+  sway(轻晃) chop(砍树) farm(耕种) fish(钓鱼) build(建造) watch(远望)。
+  点首屏那个小人可以轮换居民，配色和对话都来自 CONFIG.residents。
+
+  ── 昼夜 ──
+  右上角按钮切换，会记在浏览器里（localStorage 的 town-night），
+  和 wiki.html 共用同一份记录，两页保持一致。首次打开按当地时间判断。
+  ============================================================
+-->
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --cream:#fbf3e3;--cream2:#fffaf0;--paper:#f6ead2;
+  --ink:#42352a;--ink2:#6f5f4c;--dim:#9c8b72;
+  --sun:#f4a521;--orange:#ef7d3c;--coral:#f3936b;--sky:#4facdd;--grass:#6cba5a;
+  --line:rgba(120,90,50,.14);--line2:rgba(120,90,50,.24);
+  --sh:0 14px 38px rgba(150,100,40,.13);--sh-sm:0 6px 18px rgba(150,100,40,.1);
+  --rl:20px;
+  color-scheme:light;
+}
+body.night{
+  --cream:#16110b;--cream2:#211a12;--paper:#120e09;
+  --ink:#f3ead8;--ink2:#cdbb9e;--dim:#9a896f;
+  --line:rgba(255,221,150,.12);--line2:rgba(255,221,150,.24);
+  --sh:0 16px 40px rgba(0,0,0,.5);--sh-sm:0 8px 20px rgba(0,0,0,.4);
+}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--cream);color:var(--ink);overflow-x:hidden;min-height:100vh;
+  -webkit-font-smoothing:antialiased;transition:background-color .9s ease,color .9s ease;
+  background-image:
+    radial-gradient(ellipse at 15% 8%,rgba(244,165,33,.055) 0%,transparent 46%),
+    radial-gradient(ellipse at 85% 92%,rgba(239,125,60,.042) 0%,transparent 46%);}
+body.night{background-image:
+    radial-gradient(ellipse at 18% 8%,rgba(100,120,210,.04) 0%,transparent 46%),
+    radial-gradient(ellipse at 82% 92%,rgba(80,60,150,.046) 0%,transparent 46%);}
+a{color:inherit;}
+.wrap{max-width:1140px;margin:0 auto;padding:0 40px;}
+.sec{padding:96px 0;position:relative;}
+.sec.paper{background:var(--paper);transition:background-color .9s ease;
+  background-image:repeating-linear-gradient(-52deg,transparent 0,transparent 26px,rgba(120,90,50,.015) 26px,rgba(120,90,50,.015) 27px);}
+body.night .sec.paper{background-image:repeating-linear-gradient(-52deg,transparent 0,transparent 26px,rgba(255,210,130,.009) 26px,rgba(255,210,130,.009) 27px);}
+.kicker{display:inline-flex;align-items:center;gap:9px;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--orange);margin-bottom:14px;}
+.kicker::before{content:'';width:20px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--sun),var(--orange));}
+.h2{font-size:clamp(27px,3.6vw,38px);font-weight:900;letter-spacing:-.5px;line-height:1.15;color:var(--ink);transition:color .9s ease;}
+.lead{font-size:15px;color:var(--ink2);line-height:1.9;transition:color .9s ease;}
+.lead .hl{color:var(--orange);font-weight:700;}
+.px{font-family:ui-monospace,'Courier New',monospace;font-size:11px;letter-spacing:.5px;}
+
+/* ───────── NAV ───────── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:500;height:66px;display:flex;align-items:center;padding:0 36px;
+  transition:height .35s,background .35s,box-shadow .35s;}
+.nav.solid{background:rgba(251,243,227,.88);backdrop-filter:blur(18px) saturate(1.4);box-shadow:0 2px 20px rgba(150,100,40,.08);}
+body.night .nav.solid{background:rgba(22,17,11,.82);box-shadow:0 2px 20px rgba(0,0,0,.4);}
+.nav.shrink{height:54px;}
+.nav-logo{display:flex;align-items:center;gap:11px;text-decoration:none;margin-right:30px;flex-shrink:0;}
+.lm{width:32px;height:32px;border-radius:9px;overflow:hidden;box-shadow:0 4px 12px rgba(150,100,40,.25);
+  flex-shrink:0;transition:width .35s,height .35s;display:block;}
+.nav.shrink .lm{width:28px;height:28px;}
+/* CSS 草方块 logo */
+.lm-block{background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 1px,transparent 1px 8px),
+    linear-gradient(to bottom,#93d653 0,#93d653 22%,#79bf3c 22%,#79bf3c 38%,#9c6b3f 38%,#9c6b3f 52%,#875930 52%,#7a4f2a 100%);}
+.nav-name{font-size:17px;font-weight:900;color:var(--ink);letter-spacing:.5px;transition:color .9s ease;}
+.nav-links{display:flex;gap:2px;flex:1;min-width:0;}
+.nl{font-size:13px;color:var(--ink2);padding:7px 12px;border-radius:9px;text-decoration:none;
+  transition:color .15s,background .15s;white-space:nowrap;font-weight:500;}
+.nl:hover{color:var(--ink);background:rgba(120,90,50,.07);}
+body.night .nl:hover{background:rgba(255,221,150,.08);}
+.nl.act{color:var(--orange);}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.live-pill{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#3f9e63;
+  background:rgba(108,186,90,.14);border:1px solid rgba(108,186,90,.3);padding:5px 13px;border-radius:99px;}
+body.night .live-pill{color:#8fe0a3;}
+.dot{width:7px;height:7px;border-radius:50%;background:#5bbf6f;flex-shrink:0;animation:pulse 2.4s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(91,191,111,.5);}70%{box-shadow:0 0 0 5px rgba(91,191,111,0);}}
+.nav-ip{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--ink2);background:rgba(120,90,50,.06);
+  border:1px solid var(--line);padding:5px 10px;border-radius:7px;cursor:pointer;transition:all .2s;}
+body.night .nav-ip{background:rgba(255,221,150,.06);}
+.nav-ip:hover{border-color:var(--line2);color:var(--ink);}
+.nav-ip.ok{color:#3f9e63;border-color:rgba(108,186,90,.4);}
+.theme-toggle{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);
+  background:radial-gradient(circle at 32% 30%,#fff5d6,#ffd98a 55%,#f7b733);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;
+  box-shadow:0 4px 14px rgba(244,165,33,.35);transition:transform .25s,box-shadow .25s,background .5s;}
+.theme-toggle:hover{transform:translateY(-1px) rotate(18deg);box-shadow:0 6px 18px rgba(244,165,33,.5);}
+.theme-toggle svg{width:19px;height:19px;}
+.theme-toggle .tt-moon{display:none;}
+body.night .theme-toggle{background:radial-gradient(circle at 34% 30%,#cfd8f5,#9fb0e8 55%,#5566a8);box-shadow:0 4px 14px rgba(120,140,210,.4);}
+body.night .theme-toggle .tt-sun{display:none;}
+body.night .theme-toggle .tt-moon{display:block;}
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal;}
+::view-transition-new(root){z-index:99999;}
+::view-transition-old(root){z-index:1;}
+html.vt-active *{transition:none !important;}
+.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;margin-left:auto;z-index:600;}
+.ham span{display:block;width:23px;height:2px;background:var(--ink);border-radius:2px;transition:all .3s;}
+.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+.ham.open span:nth-child(2){opacity:0;}
+.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:286px;background:var(--cream2);
+  box-shadow:-10px 0 40px rgba(0,0,0,.18);z-index:550;transform:translateX(100%);
+  transition:transform .42s cubic-bezier(.4,0,.2,1);padding:84px 26px 40px;display:flex;flex-direction:column;gap:3px;}
+.drawer.open{transform:translateX(0);}
+.drawer .nl{font-size:15px;padding:12px 14px;border-radius:11px;}
+.drawer-sep{height:1px;background:var(--line);margin:14px 0;}
+.drawer-ip{font-family:ui-monospace,monospace;font-size:13px;color:var(--ink2);padding:8px 14px;}
+.dov{position:fixed;inset:0;background:rgba(60,40,20,.32);z-index:540;opacity:0;pointer-events:none;transition:opacity .3s;}
+.dov.open{opacity:1;pointer-events:auto;}
+
+/* ───────── HERO diorama ───────── */
+#hero{--gold:#f2c96a;--xink:#f5ecd8;
+  position:relative;height:clamp(520px,66vh,760px);overflow:hidden;background:#1a1208;
+  width:calc(100% - 40px);max-width:1560px;margin:76px auto 0;border-radius:20px;
+  box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.06);}
+/* 天空 */
+.sky{position:absolute;inset:0;z-index:0;transition:opacity 1.1s ease;
+  background:linear-gradient(to bottom,#5abcee 0%,#89d4f4 24%,#bae8f8 46%,#d8f2e4 64%,#eaf8e8 82%,#f2f8e2 100%);}
+.sky.night-sky{opacity:0;
+  background:linear-gradient(to bottom,#0e1430 0%,#1c2350 26%,#3a2c63 50%,#7b3f6e 72%,#c75f54 88%,#e8a06a 100%);}
+body.night .sky{opacity:0;}
+body.night .sky.night-sky{opacity:1;}
+#stars{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity 1.1s ease;pointer-events:none;}
+body.night #stars{opacity:1;}
+/* 太阳 / 月亮 */
+.sun,.moon{position:absolute;top:11%;left:50%;transform:translateX(-50%);pointer-events:none;border-radius:50%;
+  transition:opacity .9s ease,transform .9s ease;z-index:1;}
+.sun{width:120px;height:120px;
+  background:radial-gradient(circle,#fff9e0 0%,#ffe9a0 32%,rgba(255,213,128,.55) 58%,rgba(255,200,100,.2) 72%,transparent 80%);
+  box-shadow:0 0 120px 48px rgba(255,224,150,.45);animation:breath 7s ease-in-out infinite;}
+.moon{width:84px;height:84px;opacity:0;
+  background:radial-gradient(circle at 36% 36%,#fdf6e3 0%,#e9e0c4 44%,#cfc6a6 68%,transparent 76%);
+  box-shadow:0 0 70px 24px rgba(230,225,190,.32);}
+body.night .sun{opacity:0;transform:translateX(-50%) scale(.8);}
+body.night .moon{opacity:1;transform:translateX(-50%) scale(1);}
+@keyframes breath{0%,100%{transform:translateX(-50%) scale(1);}50%{transform:translateX(-50%) scale(1.06);}}
+/* 云 */
+.cloud{position:absolute;background:rgba(255,255,255,.82);border-radius:50%;filter:blur(16px);transition:opacity .9s ease;z-index:1;}
+body.night .cloud{opacity:.22;background:rgba(190,200,230,.6);}
+.cloud.c1{width:250px;height:60px;top:13%;left:6%;animation:drift 46s linear infinite;}
+.cloud.c2{width:190px;height:46px;top:23%;right:9%;opacity:.65;animation:drift 58s linear infinite reverse;}
+.cloud.c3{width:320px;height:64px;top:35%;left:24%;opacity:.45;animation:drift 72s linear infinite;}
+@keyframes drift{0%{transform:translateX(-40px);}100%{transform:translateX(40px);}}
+/* 鸟 */
+.bird-wrap{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden;
+  animation:fadeInLate 1.8s ease 1.4s both;}
+@keyframes fadeInLate{from{opacity:0;}to{opacity:1;}}
+.brd{position:absolute;overflow:visible;animation:bfly linear infinite;}
+.brd path{fill:none;stroke-linecap:round;transition:stroke .9s;}
+body.night .brd path{stroke:rgba(160,180,220,.2)!important;}
+@keyframes bfly{0%{transform:translateX(-80px);}100%{transform:translateX(calc(100% + 1600px));}}
+/* 山与丘陵 */
+.ridge{position:absolute;left:-2%;right:-2%;bottom:-1px;width:104%;z-index:1;}
+.ridge svg{display:block;width:100%;height:auto;}
+.ridge path{transition:fill 1.1s ease;}
+.r-far path{fill:rgba(182,202,220,.5);}
+body.night .r-far path{fill:rgba(28,40,68,.65);}
+.r-mid path{fill:#c5dba6;}
+body.night .r-mid path{fill:#2c4434;}
+.r-close path{fill:#9fd07f;}
+body.night .r-close path{fill:#37532f;}
+.r-front path{fill:#7cbb5f;}
+body.night .r-front path{fill:#284121;}
+/* 像素草方块地面 */
+.mc-ground{position:absolute;left:0;right:0;bottom:0;height:74px;z-index:4;pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 2px,transparent 2px 37px),
+    linear-gradient(to bottom,
+      #93d653 0,#93d653 7px,
+      #79bf3c 7px,#79bf3c 21px,
+      #5c9a2c 21px,#5c9a2c 25px,
+      #9c6b3f 25px,#9c6b3f 27px,
+      #875930 27px,#7a4f2a 100%);
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.12);transition:filter .9s ease;}
+body.night .mc-ground{filter:brightness(.46) saturate(.85);}
+/* 砾石路 */
+.mc-path{position:absolute;left:-5%;right:-5%;bottom:56px;height:12px;z-index:5;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.07) 0 2px,transparent 2px 24px),#9a9087;
+  transition:filter .9s ease;}
+body.night .mc-path{filter:brightness(.5);}
+/* 小镇 SVG */
+.town{position:absolute;left:0;right:0;bottom:60px;z-index:3;pointer-events:none;height:52%;}
+.town svg{display:block;width:100%;height:100%;}
+.town .win{fill:#a7dcec;transition:fill .9s ease;}
+body.night .town .win{fill:#ffe08a;}
+.town .lamp-on{fill:#4a4a4a;transition:fill .9s ease;}
+body.night .town .lamp-on{fill:#ffd98a;}
+.town g{transition:filter .9s ease;}
+body.night .town g{filter:brightness(.55) saturate(.9);}
+body.night .town .keep-bright{filter:none;}
+/* 大气雾 */
+.atmo{position:absolute;left:0;right:0;bottom:0;height:38%;z-index:5;pointer-events:none;
+  background:linear-gradient(to top,rgba(247,235,210,.18) 0%,transparent 100%);transition:background .9s ease;}
+body.night .atmo{background:linear-gradient(to top,rgba(10,6,2,.24) 0%,transparent 100%);}
+.scrim{position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:linear-gradient(90deg,rgba(6,9,18,.62) 0%,rgba(6,9,18,.34) 26%,rgba(6,9,18,.03) 48%,transparent 60%),
+             linear-gradient(180deg,rgba(6,9,18,.42) 0%,rgba(6,9,18,.08) 14%,transparent 20%),
+             linear-gradient(0deg,rgba(6,9,18,.34) 0%,transparent 22%);}
+body.night .scrim{background:linear-gradient(90deg,rgba(6,9,18,.8) 0%,rgba(6,9,18,.46) 24%,rgba(6,9,18,.08) 44%,transparent 56%),
+             linear-gradient(180deg,rgba(6,9,18,.46) 0%,transparent 18%),
+             linear-gradient(0deg,rgba(6,9,18,.42) 0%,transparent 24%);}
+#particles{position:absolute;inset:0;z-index:7;pointer-events:none;}
+
+/* ───────── 像素小人（纯 CSS 关节小人，无贴图）───────── */
+.crowd{position:absolute;inset:0;z-index:6;pointer-events:none;}
+.player{position:absolute;bottom:var(--b,64px);z-index:var(--z,3);transform:translateX(-50%);}
+.player-shadow{position:absolute;bottom:calc(var(--u) * -1.2);left:50%;transform:translateX(-50%);
+  width:calc(var(--u) * 11);height:calc(var(--u) * 2.3);border-radius:50%;
+  background:radial-gradient(ellipse,rgba(30,20,5,.34),transparent 70%);z-index:0;}
+.mc{position:relative;width:calc(var(--u)*16);height:calc(var(--u)*32);transform-origin:50% 100%;
+  filter:drop-shadow(0 3px 3px rgba(30,20,5,.22));transition:filter .9s ease;}
+body.night .mc{filter:drop-shadow(0 3px 3px rgba(0,0,0,.4)) brightness(.72);}
+.mc-part{position:absolute;}
+/* 头：肤色 + 头发 + 眼睛 */
+.mc-head{left:calc(var(--u)*4);top:0;width:calc(var(--u)*8);height:calc(var(--u)*8);z-index:5;
+  background:var(--skin,#e0ac7e);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+.mc-head::before{content:'';position:absolute;left:0;right:0;top:0;height:34%;background:var(--hair,#3b2a1a);}
+.mc-head::after{content:'';position:absolute;top:46%;left:18%;width:16%;height:16%;
+  background:#2b2118;box-shadow:calc(var(--u)*3) 0 0 #2b2118;}
+.mc-body{left:calc(var(--u)*4);top:calc(var(--u)*8);width:calc(var(--u)*8);height:calc(var(--u)*12);z-index:3;
+  background:linear-gradient(to bottom,var(--shirt,#4f8fdd) 0 66%,var(--pants,#3b4a6b) 66% 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+.mc-armR,.mc-armL{width:calc(var(--u)*4);height:calc(var(--u)*12);top:calc(var(--u)*8);
+  background:linear-gradient(to bottom,var(--shirt,#4f8fdd) 0 62%,var(--skin,#e0ac7e) 62% 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+.mc-armR{left:0;z-index:2;transform-origin:50% 9%;}
+.mc-armL{left:calc(var(--u)*12);z-index:6;transform-origin:50% 9%;}
+.mc-legR,.mc-legL{width:calc(var(--u)*4);height:calc(var(--u)*12);top:calc(var(--u)*20);
+  background:linear-gradient(to bottom,var(--pants,#3b4a6b) 0 78%,var(--shoe,#2a2118) 78% 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+.mc-legR{left:calc(var(--u)*4);z-index:3;transform-origin:50% 6%;}
+.mc-legL{left:calc(var(--u)*8);z-index:2;transform-origin:50% 6%;}
+/* 待机动作 */
+@keyframes mcBob{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(var(--u)*-0.4))}}
+@keyframes mcSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(1.6deg)}}
+@keyframes waveArm{0%,100%{transform:rotate(-148deg)}50%{transform:rotate(-124deg)}}
+@keyframes idleArmL{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(-22deg)}}
+@keyframes idleArmR{0%,100%{transform:rotate(10deg)}50%{transform:rotate(22deg)}}
+@keyframes cheerArmL{0%,100%{transform:rotate(-128deg)}50%{transform:rotate(-148deg)}}
+@keyframes cheerArmR{0%,100%{transform:rotate(128deg)}50%{transform:rotate(148deg)}}
+@keyframes chopArmR{0%,100%{transform:rotate(48deg)}45%{transform:rotate(148deg)}}
+@keyframes farmBody{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(calc(var(--u)*1.1)) rotate(11deg)}}
+@keyframes farmArmL{0%,100%{transform:rotate(-28deg)}50%{transform:rotate(-108deg)}}
+@keyframes fishArm{0%,80%,100%{transform:rotate(74deg)}90%{transform:rotate(58deg)}}
+@keyframes buildArmR{0%,100%{transform:rotate(-148deg)}42%{transform:rotate(-82deg)}}
+@keyframes watchAL{0%,100%{transform:rotate(-132deg)}50%{transform:rotate(-150deg)}}
+@keyframes watchAR{0%,100%{transform:rotate(132deg)}50%{transform:rotate(150deg)}}
+.mc.wave{animation:mcBob 3s ease-in-out infinite;}
+.mc.wave .mc-armL{animation:waveArm 1.5s ease-in-out infinite;}
+.mc.idle{animation:mcBob 3.2s ease-in-out infinite;}
+.mc.idle .mc-armL{animation:idleArmL 3.2s ease-in-out infinite;}
+.mc.idle .mc-armR{animation:idleArmR 3.2s ease-in-out infinite;}
+.mc.cheer{animation:mcBob 2.5s ease-in-out infinite;}
+.mc.cheer .mc-armL{animation:cheerArmL 2.5s ease-in-out infinite;}
+.mc.cheer .mc-armR{animation:cheerArmR 2.5s ease-in-out infinite;}
+.mc.sway{animation:mcSway 4s ease-in-out infinite;}
+.mc.chop{animation:mcBob .55s ease-in-out infinite;}
+.mc.chop .mc-armR{animation:chopArmR .55s ease-in-out infinite;}
+.mc.farm{animation:farmBody 1.1s ease-in-out infinite;}
+.mc.farm .mc-armL{animation:farmArmL 1.1s ease-in-out infinite;}
+.mc.fish{animation:mcBob 3.8s ease-in-out infinite;}
+.mc.fish .mc-armR{animation:fishArm 3.8s ease-in-out infinite;}
+.mc.build{animation:mcBob .72s ease-in-out infinite;}
+.mc.build .mc-armR{animation:buildArmR .72s ease-in-out infinite;}
+.mc.watch{animation:mcBob 3s ease-in-out infinite;}
+.mc.watch .mc-armL{animation:watchAL 3s ease-in-out infinite;}
+.mc.watch .mc-armR{animation:watchAR 3s ease-in-out infinite;}
+
+/* ───────── HERO UI 层 ───────── */
+.hero-left{position:absolute;left:5vw;top:26%;width:44%;max-width:560px;z-index:12;}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:#dfe6f2;
+  background:rgba(20,26,38,.5);border:1px solid rgba(120,200,140,.3);border-radius:99px;padding:7px 15px;
+  margin-bottom:22px;backdrop-filter:blur(6px);}
+.eyebrow b{color:#7fe09a;}
+.eb-dot{width:8px;height:8px;border-radius:50%;background:#6fcf6f;box-shadow:0 0 8px #6fcf6f;animation:ebpulse 2s infinite;}
+@keyframes ebpulse{0%,100%{opacity:1}50%{opacity:.45}}
+.hero-title{font-size:clamp(50px,7vw,104px);font-weight:900;line-height:1;letter-spacing:.03em;}
+.hero-title .w{color:#f7efde;text-shadow:0 4px 28px rgba(0,0,0,.5);}
+.hero-title b{background:linear-gradient(180deg,#fff1bf 0%,#ffd24f 100%);-webkit-background-clip:text;
+  background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 9px rgba(255,176,40,.6));}
+.tagline{font-size:clamp(15px,1.3vw,19px);color:#cfd6e4;margin-top:18px;font-weight:500;text-shadow:0 2px 12px rgba(0,0,0,.6);}
+.join{display:flex;align-items:center;gap:14px;margin-top:30px;background:rgba(14,18,28,.6);
+  border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px 12px 12px 18px;width:max-content;
+  max-width:100%;backdrop-filter:blur(10px);}
+.join-ip{cursor:pointer;}
+.join-label{font-size:10px;color:#8b93a6;font-weight:700;letter-spacing:.12em;}
+.join-addr{font-size:17px;color:var(--xink);font-weight:700;font-family:ui-monospace,monospace;margin-top:2px;}
+.join-btn{background:var(--gold);color:#1a1206;border:none;border-radius:10px;padding:11px 20px;
+  font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;transition:.16s;}
+.join-btn:hover{background:#ffd47a;transform:translateY(-1px);}
+/* 场景中的入口标牌 */
+.prop{position:absolute;z-index:11;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;cursor:pointer;
+  background:rgba(13,17,27,.6);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:14px;font-weight:700;
+  text-decoration:none;padding:9px 15px;border-radius:99px;backdrop-filter:blur(8px);
+  box-shadow:0 6px 20px rgba(0,0,0,.45);opacity:0;
+  transition:transform .2s,background .2s,border-color .2s,box-shadow .2s,opacity .5s;}
+#hero.ready .prop{opacity:1;}
+.prop .chev{color:var(--gold);font-weight:900;font-size:13px;}
+.prop:hover{background:rgba(244,201,106,.92);color:#1a1206;border-color:var(--gold);
+  transform:translateY(-3px) scale(1.04);box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 3px rgba(244,201,106,.25);}
+.prop:hover .chev{color:#1a1206;}
+.prop.cx{transform:translateX(-50%);}
+.prop.cx:hover{transform:translateX(-50%) translateY(-3px) scale(1.04);}
+.event-pill{position:absolute;z-index:12;top:12%;right:4%;display:inline-flex;align-items:center;gap:8px;
+  white-space:nowrap;cursor:pointer;text-decoration:none;
+  background:linear-gradient(135deg,rgba(255,228,150,.95),rgba(244,180,70,.95));color:#3a2606;
+  font-size:13.5px;font-weight:800;padding:9px 16px;border-radius:99px;
+  box-shadow:0 8px 24px rgba(244,180,70,.4),inset 0 0 0 1px rgba(255,255,255,.3);
+  animation:pillbob 3.4s ease-in-out infinite;}
+@keyframes pillbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.event-pill:hover{filter:brightness(1.06);}
+/* 主角名牌与气泡 */
+.owner-wrap{position:absolute;left:60%;bottom:14%;z-index:13;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;}
+.bubble{background:#fffdf7;color:#2a2418;font-size:14.5px;font-weight:600;max-width:240px;text-align:center;
+  line-height:1.5;padding:11px 17px;border-radius:16px;border-bottom-left-radius:5px;
+  box-shadow:0 12px 34px rgba(0,0,0,.45);opacity:0;transform:translateY(8px);
+  transition:opacity .35s,transform .35s;position:relative;}
+.bubble b{color:#e9a23c;font-weight:800;}
+.bubble.show{opacity:1;transform:translateY(0);}
+.bubble::after{content:'';position:absolute;left:50%;margin-left:-9px;bottom:-9px;
+  border:9px solid transparent;border-top-color:#fffdf7;border-bottom:0;}
+.name-tag{background:rgba(0,0,0,.45);color:#fff;font-size:12px;font-weight:600;white-space:nowrap;
+  padding:2px 9px;border-radius:3px;text-shadow:1px 1px 0 rgba(0,0,0,.6);}
+.owner-hit{position:absolute;left:60%;bottom:60px;width:110px;height:150px;transform:translateX(-50%);
+  z-index:12;cursor:pointer;}
+/* 在线玩家头像条 */
+.players{position:absolute;bottom:0;left:0;right:0;z-index:16;display:flex;align-items:center;gap:5px;
+  padding:10px 18px 11px;background:linear-gradient(to top,rgba(6,4,1,.82) 0%,transparent 100%);
+  overflow:hidden;pointer-events:none;}
+.players::after{content:'';position:absolute;right:0;top:0;bottom:0;width:48px;
+  background:linear-gradient(to right,transparent,rgba(6,4,1,.82));}
+.pav-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.45);white-space:nowrap;margin-right:3px;letter-spacing:.04em;}
+.pav{width:28px;height:28px;border-radius:5px;border:1.5px solid rgba(255,255,255,.16);overflow:hidden;
+  flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;color:rgba(255,255,255,.9);}
+.pav-more{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:5px;
+  padding:0 9px;height:28px;display:flex;align-items:center;color:rgba(255,255,255,.6);
+  font-size:11px;font-weight:700;flex-shrink:0;white-space:nowrap;}
+.scroll-cue{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);z-index:10;
+  display:flex;flex-direction:column;align-items:center;gap:8px;color:#aab2c2;font-size:12px;
+  font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.7);pointer-events:none;transition:opacity .4s;}
+.scroll-cue .m{width:22px;height:34px;border:2px solid #aab2c2;border-radius:99px;position:relative;}
+.scroll-cue .m::after{content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  width:3px;height:7px;background:#aab2c2;border-radius:99px;animation:cuedot 1.6s infinite;}
+@keyframes cuedot{0%{opacity:1;top:6px}100%{opacity:0;top:18px}}
+
+/* ───────── STATS ───────── */
+.stats-sec{margin-top:20px;position:relative;z-index:5;}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:540px;margin:0 auto;}
+.stat{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);padding:26px 20px;
+  text-align:center;box-shadow:var(--sh-sm);transition:transform .25s,box-shadow .25s,background-color .9s,border-color .9s;}
+.stat:hover{transform:translateY(-4px);box-shadow:var(--sh);}
+.stat-n{font-size:36px;font-weight:900;line-height:1;letter-spacing:-1px;margin-bottom:7px;
+  background:linear-gradient(135deg,var(--sun),var(--orange));-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;color:var(--orange);}
+.stat.live .stat-n{background:linear-gradient(135deg,#5bbf6f,#3f9e63);-webkit-background-clip:text;
+  background-clip:text;-webkit-text-fill-color:transparent;color:#3f9e63;}
+.stat-n .u{font-size:17px;font-weight:800;margin-left:2px;}
+.stat-l{font-size:13px;color:var(--ink2);font-weight:700;transition:color .9s;}
+.stat-sl{font-size:11px;color:var(--dim);margin-top:3px;transition:color .9s;}
+.hw-bar{display:flex;align-items:center;gap:18px;margin-top:18px;padding:15px 28px;background:var(--cream2);
+  border:1px solid var(--line);border-radius:var(--rl);box-shadow:var(--sh-sm);flex-wrap:wrap;
+  justify-content:center;transition:background-color .9s,border-color .9s;}
+.hw-spec{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink2);transition:color .9s;}
+.hw-spec svg{width:15px;height:15px;stroke:var(--orange);fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.hw-dot{width:4px;height:4px;border-radius:50%;background:var(--dim);opacity:.4;flex-shrink:0;}
+.hw-note{font-size:12.5px;color:var(--orange);font-weight:700;border-left:2px solid var(--line2);
+  padding-left:16px;margin-left:4px;transition:color .9s,border-color .9s;}
+
+/* ───────── WHY ───────── */
+.why-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:14px;}
+.why{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);padding:30px 24px;
+  box-shadow:var(--sh-sm);transition:transform .3s ease,box-shadow .3s,background-color .9s,border-color .9s;}
+.why-ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
+.why-ic svg{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.why-ic.a{background:linear-gradient(135deg,#f7b733,#ef7d3c);}
+.why-ic.b{background:linear-gradient(135deg,#5bbf6f,#3f9e63);}
+.why-ic.c{background:linear-gradient(135deg,#5db6e3,#4f8fdd);}
+.why-ic.d{background:linear-gradient(135deg,#f3936b,#ee5a8d);}
+.why-t{font-size:16px;font-weight:800;margin-bottom:9px;transition:color .9s;}
+.why-d{font-size:13px;color:var(--ink2);line-height:1.75;transition:color .9s;}
+
+/* ───────── MODES（CSS 绘制的场景缩略图）───────── */
+.modes{display:grid;grid-template-columns:2fr 1fr 1fr;gap:14px;}
+.mode{position:relative;display:block;border-radius:var(--rl);overflow:hidden;text-decoration:none;
+  min-height:270px;box-shadow:var(--sh-sm);transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .3s;}
+.mode:hover{transform:translateY(-6px);box-shadow:var(--sh);}
+.mode.feat{grid-column:span 3;min-height:320px;}
+.mode-art{position:absolute;inset:0;transition:transform 1.1s cubic-bezier(.2,.8,.2,1);transform:scale(1.08);}
+.mode.vis .mode-art{transform:scale(1);}
+.mode:hover .mode-art{transform:scale(1.05);}
+/* 场景 1：黄昏村落 */
+.art-village{background:
+  linear-gradient(to bottom,#f9c46b 0%,#f4a05c 26%,#e0764f 46%,#8a5a48 62%,#4b6b3c 62%,#3d5a32 100%);}
+.art-village::before{content:'';position:absolute;left:16%;top:14%;width:78px;height:78px;border-radius:50%;
+  background:radial-gradient(circle,#fff6d8,#ffd884 60%,rgba(255,200,110,.2) 78%,transparent);}
+.art-village::after{content:'';position:absolute;left:0;right:0;bottom:0;height:44%;
+  background:
+    linear-gradient(to right,transparent 8%,#3a2a18 8% 12%,transparent 12% 20%,#4a3520 20% 26%,transparent 26% 38%,#3a2a18 38% 43%,transparent 43%) bottom/100% 52% no-repeat,
+    repeating-linear-gradient(90deg,rgba(0,0,0,.08) 0 2px,transparent 2px 22px);}
+/* 场景 2：田园农场 */
+.art-farm{background:linear-gradient(to bottom,#a8dcf0 0%,#cfeeda 42%,#8dbf5c 42%,#6da046 100%);}
+.art-farm::before{content:'';position:absolute;left:0;right:0;bottom:0;height:58%;
+  background:repeating-linear-gradient(90deg,#c8a23c 0 6px,#a8862c 6px 10px,transparent 10px 26px);opacity:.85;}
+.art-farm::after{content:'';position:absolute;right:14%;top:16%;width:52px;height:52px;border-radius:50%;
+  background:radial-gradient(circle,#fffbe6,#ffe89a 62%,transparent 80%);}
+/* 场景 3：红石夜景 */
+.art-redstone{background:linear-gradient(to bottom,#101828 0%,#1c2540 44%,#2a2118 44%,#1a140e 100%);}
+.art-redstone::before{content:'';position:absolute;left:0;right:0;bottom:0;height:56%;
+  background:
+    repeating-linear-gradient(90deg,transparent 0 14px,rgba(220,60,50,.85) 14px 18px,transparent 18px 40px),
+    repeating-linear-gradient(0deg,transparent 0 16px,rgba(120,90,60,.5) 16px 18px,transparent 18px 44px);}
+.art-redstone::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 30% 74%,rgba(255,90,60,.34),transparent 42%),
+             radial-gradient(circle at 72% 62%,rgba(255,150,60,.22),transparent 40%);}
+/* 场景 4：地牢冒险 */
+.art-dungeon{background:linear-gradient(to bottom,#2a1a2e 0%,#3d2338 40%,#241827 100%);}
+.art-dungeon::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.04) 0 1px,transparent 1px 26px),
+             repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 26px);}
+.art-dungeon::after{content:'';position:absolute;left:50%;top:38%;width:90px;height:90px;margin-left:-45px;
+  border-radius:50%;background:radial-gradient(circle,rgba(140,90,220,.55),rgba(90,50,170,.2) 55%,transparent 74%);}
+/* 场景 5：湖畔 / 雨夜（跑马灯用）*/
+.art-lake{background:linear-gradient(to bottom,#8fd0ea 0%,#bfe8f2 34%,#5e93b8 46%,#3f6d90 100%);}
+.art-lake::before{content:'';position:absolute;left:0;right:0;bottom:0;height:54%;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.16) 0 2px,transparent 2px 9px);}
+.art-lake::after{content:'';position:absolute;left:30%;bottom:44%;width:40%;height:22%;
+  background:#6b4a2a;box-shadow:0 -14px 0 -6px #7a3a24;}
+.art-rain{background:linear-gradient(to bottom,#3a4258 0%,#4e5670 40%,#2e3446 100%);}
+.art-rain::before{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(74deg,rgba(210,225,255,.3) 0 1px,transparent 1px 9px);}
+.art-rain::after{content:'';position:absolute;left:0;right:0;bottom:0;height:38%;
+  background:linear-gradient(to right,#241c14 0 18%,transparent 18% 26%,#2e2418 26% 48%,transparent 48% 60%,#241c14 60% 82%,transparent 82%);}
+.art-temple{background:linear-gradient(to bottom,#f6d9a8 0%,#e8b07a 38%,#7a5a3a 52%,#4a3a26 100%);}
+.art-temple::before{content:'';position:absolute;left:24%;right:24%;bottom:16%;height:46%;background:#b03a2e;
+  box-shadow:0 -10px 0 -4px #8a2a20,0 -20px 0 -10px #6e2018;}
+.art-temple::after{content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.06) 0 1px,transparent 1px 20px);}
+.art-sky{background:linear-gradient(to bottom,#6fc4ea 0%,#a9dff2 40%,#dff2f8 62%,#bcd9a8 100%);}
+.art-sky::before{content:'';position:absolute;left:20%;top:26%;width:60%;height:34%;
+  background:#cfd6da;border-radius:8px;box-shadow:0 12px 0 -4px #a8b2b8;}
+.art-sky::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 78% 22%,rgba(255,255,255,.7),transparent 30%);}
+.mode-pixel{position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 16px),
+             repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 1px,transparent 1px 16px);}
+.mode-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(40,22,8,.9) 6%,rgba(40,22,8,.45) 42%,rgba(40,22,8,.05) 78%);}
+.mode-body{position:absolute;left:0;right:0;bottom:0;padding:24px;z-index:1;}
+.mode.feat .mode-body{max-width:480px;padding:32px;}
+.mode-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 11px;
+  border-radius:99px;margin-bottom:11px;backdrop-filter:blur(5px);}
+.mode-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.mode-tag.open{color:#a6f0b8;background:rgba(108,186,90,.22);}
+.mode-tag.wip{color:#ffd98a;background:rgba(247,183,51,.2);}
+.mode-name{font-size:20px;font-weight:900;color:#fff;margin-bottom:8px;}
+.mode.feat .mode-name{font-size:27px;}
+.mode-desc{font-size:13px;color:rgba(255,255,255,.78);line-height:1.7;margin-bottom:12px;}
+.mode-go{font-size:13px;font-weight:700;color:#ffd98a;display:inline-flex;align-items:center;gap:6px;transition:gap .2s;}
+.mode:hover .mode-go{gap:11px;}
+
+/* ───────── SHOWCASE MARQUEE ───────── */
+.show-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:30px;flex-wrap:wrap;}
+.marquee{position:relative;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);}
+.mq-track{display:flex;width:max-content;animation:mqscroll 60s linear infinite;}
+.marquee:hover .mq-track{animation-play-state:paused;}
+@keyframes mqscroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.pc{position:relative;width:330px;height:230px;flex-shrink:0;margin-right:16px;border-radius:var(--rl);
+  overflow:hidden;text-decoration:none;display:block;box-shadow:var(--sh-sm);
+  border:4px solid var(--cream2);transition:border-color .9s;}
+.pc-art{position:absolute;inset:0;transition:transform 6s ease;}
+.pc:hover .pc-art{transform:scale(1.08);}
+.pc::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(30,16,6,.82),transparent 55%);}
+.pc-cap{position:absolute;left:16px;bottom:13px;z-index:1;}
+.pc-cap .t{display:block;font-size:16px;font-weight:800;color:#fff;}
+.pc-cap .a{font-size:12px;color:rgba(255,255,255,.78);display:inline-flex;align-items:center;gap:5px;margin-top:2px;}
+.pc-cap .a::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--sun);}
+.invite{display:flex;align-items:center;justify-content:center;text-align:center;border:3px dashed var(--orange);
+  background:linear-gradient(135deg,#fff5e8,#ffe9d2);box-shadow:none;}
+body.night .invite{background:linear-gradient(135deg,#2a2014,#241a10);}
+.invite::after{display:none;}
+.invite-in{padding:18px;}
+.invite-plus{width:42px;height:42px;border-radius:50%;border:2px solid var(--orange);color:var(--orange);
+  display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 11px;}
+.invite-t{font-size:15px;font-weight:900;color:var(--orange);margin-bottom:5px;}
+.invite-d{font-size:12px;color:var(--ink2);line-height:1.55;transition:color .9s;}
+
+/* ───────── GUILDS ───────── */
+.guilds{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;}
+.guild{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);padding:26px 22px;
+  box-shadow:var(--sh-sm);transition:transform .3s ease,box-shadow .3s,background-color .9s,border-color .9s;
+  position:relative;overflow:hidden;}
+.guild::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:var(--gc);}
+.guild-badge{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:#fff;margin-bottom:16px;background:var(--gc);box-shadow:0 6px 14px rgba(0,0,0,.12);}
+.guild-name{font-size:17px;font-weight:900;margin-bottom:7px;transition:color .9s;}
+.guild-desc{font-size:12.5px;color:var(--ink2);line-height:1.7;transition:color .9s;}
+.guild-more{grid-column:1/-1;text-align:center;font-size:13.5px;color:var(--dim);margin-top:8px;transition:color .9s;}
+
+/* ───────── WIKI ───────── */
+.wiki-card{position:relative;overflow:hidden;border-radius:var(--rl);background:var(--cream2);
+  border:1px solid var(--line);box-shadow:var(--sh-sm);padding:40px 44px;transition:background-color .9s,border-color .9s;}
+.wiki-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;
+  background:linear-gradient(90deg,var(--sky),var(--grass),var(--sun),transparent);}
+.wiki-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:22px;}
+.wiki-link{font-size:13px;font-weight:600;color:var(--ink2);text-decoration:none;border:1px solid var(--line);
+  border-radius:9px;padding:8px 16px;transition:all .2s;white-space:nowrap;}
+.wiki-link:hover{border-color:var(--line2);color:var(--ink);}
+.si-wrap{position:relative;margin-bottom:15px;}
+.si-ico{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;
+  stroke:var(--dim);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;}
+.si{width:100%;background:var(--cream);border:1.5px solid var(--line2);border-radius:12px;
+  padding:15px 16px 15px 48px;font-family:inherit;font-size:15px;color:var(--ink);outline:none;
+  transition:border-color .2s,box-shadow .2s,background-color .9s,color .9s;}
+.si::placeholder{color:var(--dim);}
+.si:focus{border-color:var(--sun);box-shadow:0 0 0 4px rgba(244,165,33,.12);}
+.qtags{display:flex;flex-wrap:wrap;gap:9px;}
+.qt{font-size:13px;color:var(--ink2);background:var(--cream);border:1px solid var(--line);border-radius:9px;
+  padding:7px 15px;cursor:pointer;transition:all .15s;user-select:none;font-weight:500;}
+.qt:hover{color:var(--orange);border-color:var(--orange);}
+.wiki-answer{margin-top:16px;padding:16px 18px;border-radius:12px;background:var(--cream);
+  border:1px solid var(--line);font-size:13.5px;line-height:1.85;color:var(--ink2);display:none;}
+.wiki-answer.show{display:block;}
+.wiki-answer b{color:var(--ink);}
+
+/* ───────── NEWS ───────── */
+.news-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.nc{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);padding:24px 26px;
+  box-shadow:var(--sh-sm);transition:transform .22s,box-shadow .22s,background-color .9s,border-color .9s;}
+.nc:hover{transform:translateY(-3px);box-shadow:var(--sh);}
+.nc-type{font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:11px;display:inline-flex;align-items:center;gap:6px;}
+.nc-type.g{color:#3f9e63;}.nc-type.a{color:var(--orange);}.nc-type.s{color:var(--sky);}
+.nc-type::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+.nc-h{font-size:15px;font-weight:700;line-height:1.6;margin-bottom:12px;color:var(--ink);transition:color .9s;}
+.nc-d{font-size:12px;color:var(--dim);transition:color .9s;}
+
+/* ───────── FOOTER ───────── */
+.footer{background:var(--paper);border-top:1px solid var(--line);padding:44px 40px 30px;transition:background-color .9s,border-color .9s;}
+.footer-in{max-width:1140px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:28px;}
+.fl-logo{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.fl-name{font-size:16px;font-weight:900;color:var(--ink);transition:color .9s;}
+.fl-tag{font-size:13px;color:var(--ink2);line-height:1.8;max-width:280px;transition:color .9s;}
+.fl-links{display:flex;flex-wrap:wrap;gap:7px 22px;}
+.fl-a{font-size:13px;color:var(--ink2);text-decoration:none;font-weight:500;transition:color .15s;}
+.fl-a:hover{color:var(--orange);}
+.fl-r{text-align:right;}
+.fl-ip{font-family:ui-monospace,monospace;font-size:13px;color:var(--ink);background:var(--cream2);
+  border:1px solid var(--line);padding:8px 16px;border-radius:9px;display:inline-block;margin-bottom:10px;
+  cursor:pointer;transition:background-color .9s,color .9s,border-color .9s;}
+.fl-sub{font-size:12px;color:var(--dim);line-height:1.8;transition:color .9s;}
+.foot-byline{max-width:1140px;margin:26px auto 0;padding-top:20px;border-top:1px solid var(--line);
+  text-align:center;font-size:12px;color:var(--dim);transition:color .9s,border-color .9s;}
+
+/* ───────── UTIL ───────── */
+.fu{opacity:0;transform:translateY(28px);
+  transition:opacity .8s cubic-bezier(.2,.8,.2,1),transform .8s cubic-bezier(.2,.8,.2,1);}
+.fu.vis{opacity:1;transform:none;}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--ink);
+  color:var(--cream);font-size:13.5px;font-weight:600;padding:12px 24px;border-radius:11px;opacity:0;
+  pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999;box-shadow:0 12px 34px rgba(0,0,0,.3);}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ───────── RESPONSIVE ───────── */
+@media(max-width:960px){
+  .stats{max-width:none;}
+  .why-grid{grid-template-columns:1fr 1fr;}
+  .modes{grid-template-columns:1fr 1fr;}
+  .mode.feat{grid-column:span 2;}
+  .guilds{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:900px){
+  #hero{width:100%;margin:60px 0 0;border-radius:0;max-width:none;height:auto;min-height:600px;}
+  .hero-left{position:relative;left:0;top:0;width:100%;padding:40px 6vw 0;text-align:center;z-index:12;}
+  .join,.eyebrow{margin-left:auto;margin-right:auto;}
+  .prop,.event-pill,.players{display:none;}
+  .town{height:38%;}
+  .crowd .player:not(.owner){display:none;}
+  .owner-wrap{left:50%;}
+  .owner-hit{left:50%;}
+  .scroll-cue{display:none;}
+}
+@media(max-width:768px){
+  .nav{padding:0 18px;height:60px;}
+  .nav.shrink{height:52px;}
+  .nav-links,.nav-r{display:none;}
+  .ham{display:flex;}
+  .nav-logo{margin-right:0;}
+  .wrap{padding:0 22px;}
+  .sec{padding:64px 0;}
+  .stats-sec{margin-top:12px;}
+  .hw-bar{flex-direction:column;align-items:flex-start;gap:10px;padding:16px 20px;}
+  .hw-dot{display:none;}
+  .hw-note{border-left:none;padding-left:0;margin-left:0;}
+  .modes{grid-template-columns:1fr;}
+  .mode.feat{grid-column:span 1;min-height:260px;}
+  .pc{width:260px;height:185px;}
+  .wiki-card{padding:30px 24px;}
+  .wiki-top{flex-direction:column;}
+  .news-grid{grid-template-columns:1fr;}
+  .footer-in{flex-direction:column;}
+  .fl-r{text-align:left;}
+}
+@media(max-width:520px){
+  .why-grid{grid-template-columns:1fr;}
+  .guilds{grid-template-columns:1fr;}
+}
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
+  html{scroll-behavior:auto;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav class="nav" id="nav">
+  <a class="nav-logo" href="#top"><span class="lm lm-block"></span><span class="nav-name" id="brandName">永恒流光</span></a>
+  <div class="nav-links">
+    <a class="nl act" href="#top">首页</a>
+    <a class="nl" href="wiki.html">Wiki</a>
+    <a class="nl" href="wiki.html?p=manual">游玩手册</a>
+    <a class="nl" href="#showcase">建筑欣赏</a>
+    <a class="nl" href="#guilds">公会</a>
+    <a class="nl" href="#news">更新日志</a>
+  </div>
+  <div class="nav-r">
+    <div class="live-pill"><span class="dot"></span><span id="ns">连接中…</span></div>
+    <span class="nav-ip" id="navIp" onclick="copyIP(this)">YHLG.LOVE</span>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleNight()" title="切换昼夜" aria-label="切换昼夜"><svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4"/></svg><svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+  </div>
+  <button class="ham" id="ham" aria-label="菜单"><span></span><span></span><span></span></button>
+</nav>
+<div class="dov" id="dov"></div>
+<div class="drawer" id="drawer">
+  <a class="nl act" href="#top">首页</a>
+  <a class="nl" href="wiki.html">Wiki</a>
+  <a class="nl" href="wiki.html?p=manual">游玩手册</a>
+  <a class="nl" href="#showcase">建筑欣赏</a>
+  <a class="nl" href="#guilds">公会</a>
+  <a class="nl" href="#news">更新日志</a>
+  <div class="drawer-sep"></div>
+  <div class="drawer-ip" id="drawerIp">YHLG.LOVE</div>
+  <button class="nl" style="font-family:inherit;font-size:15px;font-weight:500;color:var(--ink2);background:none;border:none;text-align:left;padding:12px 14px;border-radius:11px;cursor:pointer;" onclick="toggleNight()">🌓 切换昼夜</button>
+</div>
+
+<!-- 页面主体由脚本渲染，禁用 JS 时给一份纯文字的兜底信息。
+     注意：noscript 里的内容不会进入 DOM，脚本读不到也改不了，
+     所以下面的地址、版本、群号是写死的。改 CONFIG 时记得顺手同步这一段。 -->
+<noscript>
+  <div style="max-width:640px;margin:96px auto 32px;padding:28px 30px;background:var(--cream2);
+              border:1px solid var(--line);border-radius:20px;line-height:1.9;">
+    <h1 style="font-size:24px;font-weight:900;margin-bottom:12px;">永恒流光</h1>
+    <p style="font-size:15px;color:var(--ink2);margin-bottom:16px;">
+      一座住着朋友的 Minecraft 小镇。你的浏览器停用了 JavaScript，
+      页面的动态内容（小镇全景、玩法卡片、公告）无法显示，下面是纯文字版的关键信息。
+    </p>
+    <p style="font-size:15px;color:var(--ink2);margin-bottom:8px;">
+      服务器地址：<b>YHLG.LOVE</b><br>
+      游戏版本：Minecraft Java 版 1.21.11<br>
+      玩家 QQ 群：<b>834909400</b>
+    </p>
+    <p style="font-size:15px;color:var(--ink2);">
+      玩法包括原版生存、田园养老、生电独立世界，以及正在开发的 RPG 副本。
+      进服教程与常见问题都在 <a href="wiki.html" style="color:var(--orange);font-weight:700;">百科 Wiki</a>，
+      那边不依赖脚本也能读到目录。
+    </p>
+  </div>
+</noscript>
+
+<!-- ═══════════ HERO diorama ═══════════ -->
+<section id="hero" aria-label="小镇全景">
+  <div class="sky"></div>
+  <div class="sky night-sky"></div>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div class="sun" aria-hidden="true"></div>
+  <div class="moon" aria-hidden="true"></div>
+  <div class="cloud c1" aria-hidden="true"></div>
+  <div class="cloud c2" aria-hidden="true"></div>
+  <div class="cloud c3" aria-hidden="true"></div>
+  <div class="bird-wrap" id="birdWrap" aria-hidden="true"></div>
+
+  <!-- 远山 → 近丘 -->
+  <div class="ridge r-far" aria-hidden="true">
+    <svg viewBox="0 0 1440 240" preserveAspectRatio="none"><path d="M0,148 C90,112 240,130 400,120 C560,110 700,128 880,118 C1060,108 1220,126 1380,116 C1420,114 1440,115 1440,115 L1440,240 L0,240Z"/></svg>
+  </div>
+  <div class="ridge r-mid" aria-hidden="true">
+    <svg viewBox="0 0 1440 240" preserveAspectRatio="none"><path d="M-10,168 C70,148 200,160 370,154 C540,148 680,163 860,156 C1040,149 1190,164 1380,157 C1420,155 1450,157 1450,157 L1450,240 L-10,240Z"/></svg>
+  </div>
+  <div class="ridge r-close" aria-hidden="true">
+    <svg viewBox="0 0 1440 240" preserveAspectRatio="none"><path d="M-10,185 C80,162 230,175 410,169 C590,163 750,178 940,172 C1130,166 1280,179 1450,173 L1450,240 L-10,240Z"/></svg>
+  </div>
+  <div class="ridge r-front" aria-hidden="true">
+    <svg viewBox="0 0 1440 240" preserveAspectRatio="none"><path d="M-10,205 C120,190 260,200 430,196 C620,192 780,204 980,199 C1160,195 1300,203 1450,199 L1450,240 L-10,240Z"/></svg>
+  </div>
+
+  <!-- 小镇（由脚本生成方块建筑）-->
+  <div class="town" id="town" aria-hidden="true"></div>
+  <div class="mc-path" aria-hidden="true"></div>
+  <div class="mc-ground" aria-hidden="true"></div>
+  <div class="atmo" aria-hidden="true"></div>
+
+  <!-- 镇民（由脚本生成）-->
+  <div class="crowd" id="crowd" aria-hidden="true"></div>
+
+  <div class="scrim" aria-hidden="true"></div>
+  <canvas id="particles" aria-hidden="true"></canvas>
+
+  <!-- 左侧文案 -->
+  <div class="hero-left">
+    <div class="eyebrow"><span class="eb-dot"></span><span>服务器在线 · <b id="ebCount">—</b> 人正在游玩</span></div>
+    <h1 class="hero-title"><span class="w" id="heroName1">永恒</span><b id="heroName2">流光</b></h1>
+    <p class="tagline" id="heroTagline">一座住着朋友的小镇，欢迎回家。</p>
+    <div class="join">
+      <div class="join-ip" onclick="copyIP(this)" title="点击复制地址">
+        <div class="join-label">服务器地址</div>
+        <div class="join-addr" id="joinAddr">YHLG.LOVE</div>
+      </div>
+      <button class="join-btn" onclick="copyIP(this)">加入小镇</button>
+    </div>
+  </div>
+
+  <!-- 场景中的入口标牌 -->
+  <a class="event-pill" href="wiki.html?p=manual"><span>✦</span><span>游玩手册</span></a>
+  <a class="prop" href="#modes" style="left:30%;top:58%;">玩法介绍<span class="chev">›</span></a>
+  <a class="prop" href="#news" style="left:73%;top:62%;">小镇公告<span class="chev">›</span></a>
+  <a class="prop" href="#why" style="left:82%;top:40%;">关于小镇<span class="chev">›</span></a>
+  <a class="prop" href="wiki.html" style="left:88%;top:53%;">百科 Wiki<span class="chev">›</span></a>
+  <a class="prop cx" href="#showcase" style="left:33%;top:76%;">建筑欣赏<span class="chev">›</span></a>
+  <a class="prop cx" href="#guilds" style="left:56%;top:82%;">镇内公会<span class="chev">›</span></a>
+
+  <!-- 主角气泡 + 名牌 -->
+  <div class="owner-wrap">
+    <div class="bubble" id="bubble"></div>
+    <div class="name-tag" id="nameTag">镇长</div>
+  </div>
+  <div class="owner-hit" id="ownerHit" title="点我换位镇民 · 移上来打招呼"></div>
+
+  <div class="scroll-cue" id="scrollCue"><span>向下看看小镇</span><span class="m"></span></div>
+  <div class="players" id="players" aria-hidden="true"></div>
+</section>
+
+<!-- ═══════════ STATS ═══════════ -->
+<div class="stats-sec" id="top">
+  <div class="wrap">
+    <div class="stats fu">
+      <div class="stat">
+        <div class="stat-n"><span class="count" id="daysCount" data-target="0">0</span><span class="u">天</span></div>
+        <div class="stat-l">稳定运营</div>
+        <div class="stat-sl" id="openSince">开服至今</div>
+      </div>
+      <div class="stat live">
+        <div class="stat-n"><span id="statOnline">·</span><span class="u">人</span></div>
+        <div class="stat-l">当前在线</div>
+        <div class="stat-sl">此刻就在小镇里</div>
+      </div>
+    </div>
+    <div class="hw-bar fu" id="hwBar"></div>
+  </div>
+</div>
+
+<!-- ═══════════ WHY ═══════════ -->
+<section class="sec" id="why">
+  <div class="wrap fu">
+    <div style="text-align:center;max-width:580px;margin:0 auto 8px;">
+      <div class="kicker" style="justify-content:center;">为什么是这里</div>
+      <h2 class="h2">想做一个，能一直玩下去的地方</h2>
+      <p class="lead" style="margin-top:14px;">配置够硬、环境干净、还在不停更新——希望你来了，就不太想走。</p>
+    </div>
+    <div class="why-grid">
+      <div class="why">
+        <div class="why-ic a"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.6-3 7.8-7 9-4-1.2-7-4.4-7-9V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></div>
+        <div class="why-t">审核入住</div>
+        <div class="why-d">进来的人都是筛选过的，环境干净，相处起来更安心。</div>
+      </div>
+      <div class="why">
+        <div class="why-ic b"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3M7 9h4M7 13h7"/></svg></div>
+        <div class="why-t">配置够硬</div>
+        <div class="why-d">高频 CPU + 大内存 + 固态硬盘，红石、生电、几十人同时在线都不掉链子。</div>
+      </div>
+      <div class="why">
+        <div class="why-ic c"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="why-t">一直在更新</div>
+        <div class="why-d">持续更新维护，不是开几天就鸽掉的服。</div>
+      </div>
+      <div class="why">
+        <div class="why-ic d"><svg viewBox="0 0 24 24"><path d="M3 21v-2a5 5 0 0 1 5-5h2"/><circle cx="9" cy="7" r="3.2"/><path d="M14.5 13.5l2 2 4-4.5"/></svg></div>
+        <div class="why-t">镇长亲力亲为</div>
+        <div class="why-d">策划、插件、维护、活动奖励，都有人认真在做。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ MODES ═══════════ -->
+<section class="sec paper" id="modes">
+  <div class="wrap fu">
+    <div class="kicker">在小镇，你可以这样生活</div>
+    <h2 class="h2" style="margin-bottom:30px;">选择属于你的生活方式</h2>
+    <div class="modes" id="modesGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ SHOWCASE ═══════════ -->
+<section class="sec" id="showcase">
+  <div class="wrap fu" style="margin-bottom:30px;">
+    <div class="show-head" style="margin-bottom:0;">
+      <div>
+        <div class="kicker">玩家建筑欣赏</div>
+        <h2 class="h2" style="margin-bottom:0;">镇民们的杰作</h2>
+      </div>
+      <p class="lead">这些都是镇民亲手建的。<br>下一个登上这面墙的，会不会是<span class="hl">你的作品</span>？</p>
+    </div>
+  </div>
+  <div class="marquee fu" id="marquee">
+    <div class="mq-track" id="mqTrack"></div>
+  </div>
+</section>
+
+<!-- ═══════════ GUILDS ═══════════ -->
+<section class="sec paper" id="guilds">
+  <div class="wrap fu">
+    <div style="text-align:center;max-width:560px;margin:0 auto 30px;">
+      <div class="kicker" style="justify-content:center;">小镇里的邻里</div>
+      <h2 class="h2">这里有一群一起生活的人</h2>
+      <p class="lead" style="margin-top:14px;">公会、社团、自治小镇……镇民们组成了一个个温暖的小圈子。</p>
+    </div>
+    <div class="guilds" id="guildsGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ WIKI ═══════════ -->
+<section class="sec paper" id="wiki">
+  <div class="wrap fu">
+    <div class="wiki-card">
+      <div class="wiki-top">
+        <div><div class="kicker">百科 Wiki</div><h2 style="font-size:23px;font-weight:900;color:var(--ink);">遇到问题？这里有答案</h2></div>
+        <a class="wiki-link" href="wiki.html">浏览全部词条 →</a>
+      </div>
+      <div class="si-wrap">
+        <svg class="si-ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="si" id="wi" type="text" placeholder="搜索问题，如：进不去、怎么赚钱、手机玩家…" autocomplete="off" aria-label="搜索 Wiki">
+      </div>
+      <div class="qtags" id="qtags"></div>
+      <div class="wiki-answer" id="wikiAnswer" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ NEWS ═══════════ -->
+<section class="sec" id="news">
+  <div class="wrap fu">
+    <div class="kicker">最新动态</div>
+    <h2 class="h2" style="margin-bottom:30px;">小镇公告</h2>
+    <div class="news-grid" id="newsGrid"></div>
+  </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="footer-in">
+    <div>
+      <div class="fl-logo"><span class="lm lm-block" style="width:26px;height:26px;"></span><span class="fl-name" id="footName">永恒流光</span></div>
+      <p class="fl-tag">一座住着朋友的 Minecraft 小镇，<br>慢慢生活，欢迎回家。</p>
+    </div>
+    <div>
+      <div class="fl-links">
+        <a class="fl-a" href="#why">关于小镇</a>
+        <a class="fl-a" href="wiki.html">Wiki</a>
+        <a class="fl-a" href="wiki.html?p=manual">游玩手册</a>
+        <a class="fl-a" href="#guilds">公会</a>
+        <a class="fl-a" href="#showcase">建筑欣赏</a>
+        <a class="fl-a" href="#news">更新日志</a>
+      </div>
+    </div>
+    <div class="fl-r">
+      <div class="fl-ip" id="footIp" onclick="copyIP(this)">YHLG.LOVE</div>
+      <div class="fl-sub" id="footSub">QQ 群 834909400</div>
+    </div>
+  </div>
+  <div class="foot-byline" id="footByline">打造玩家心中的世界 · 永恒流光</div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   ★ 只改这里 ★  —— 全站文案与数据都从这个对象读取
+   ══════════════════════════════════════════════════════════════ */
+var CONFIG = {
+  /* 镇名会被拆成两段显示：前段白色，后段金色渐变 */
+  name1:'永恒', name2:'流光',
+  tagline:'一座住着朋友的小镇，欢迎回家。',
+  host:'YHLG.LOVE',      // 服务器地址
+  /* 端口不单独配置。真要显示非默认端口，直接写进 host 即可，
+     例如 host:'YHLG.LOVE:16001' —— 但走 SRV 记录的服务器不需要，
+     玩家只输域名就能进。 */
+  qq:'834909400',               // 玩家 QQ 群
+  openDate:'2026-08-21',        // 开服日期，用于自动算「稳定运营 N 天」
+  version:'MC JAVA 1.21.11',
+
+  /* ── 真实在线人数 ──
+     把 fakeOnline 改成 false，statusApi 填成下面这个（换成你的地址）：
+
+       'https://motd.minebbs.com/api/status?ip=你的服务器地址'
+
+     不用带端口。实测不传 port 时它会走默认 25565，并且会自动尝试
+     解析 SRV 记录。只有改过端口的服务器才需要在末尾加 &port=你的端口。
+
+     这个接口已实测可用，是 HTTPS，所以你站点上 HTTPS 后不会有
+     混合内容问题。Java 和基岩版都支持。
+
+     它返回的字段（实测）：
+       {status:'online', players:{online,max,sample}, pureMotd, motd,
+        version, protocol, type:'Java'|'Bedrock', icon, delay}
+     离线时是 {status:'offline', host, error}
+     注意是字符串 status，没有布尔 online 字段。
+
+     页面里的 normalizeStatus 会把返回值归一化，同时也认得
+     mcsrvstat 那类 {online:true, players:{online,max}} 的格式，
+     所以以后换接口一般不用改渲染代码。
+
+     查询失败会显示「状态未知」，不会把页面卡住。
+     保持 fakeOnline:true 就一直用模拟值。 */
+  /* 已接真实数据。fakeOnline:true 会退回模拟值（在 onlineBase 附近浮动），
+     查询失败时页面显示「状态未知」，不会卡住。 */
+  fakeOnline:false, onlineBase:26,
+  statusApi:'https://motd.minebbs.com/api/status?ip=YHLG.LOVE',
+
+  /* 硬件条：数组里每项一格，前三项会自动配上 CPU / 内存 / 硬盘的小图标，
+     多写的项会按顺序循环复用这三个图标 */
+  hardware:['高频 CPU · 16 核','128G 内存','2T NVMe 固态'],
+  hardwareNote:'几十人同时在线也不卡顿',
+
+  /* 玩法卡片：art 可选 village / farm / redstone / dungeon / lake / rain / temple / sky */
+  modes:[
+    {art:'village',feat:true,tag:'已开放',name:'原版生存',desc:'完整的领地保护与经济系统，和镇民一起开荒、建设、交易，在这片土地上慢慢写下自己的故事。'},
+    {art:'farm',tag:'已开放',name:'田园养老',desc:'无死亡惩罚，悠闲种植垂钓，慢慢享受田园时光。'},
+    {art:'redstone',tag:'已开放',name:'生电独立世界',desc:'生电与建筑玩家的专属空间，红石与地图画尽情发挥。'},
+    {art:'dungeon',tag:'开发中',name:'RPG 副本冒险',desc:'职业、副本、遗迹探险全面重构，镇长亲自打磨。'}
+  ],
+
+  /* 建筑欣赏跑马灯 */
+  showcase:[
+    {art:'temple',title:'东方宫阙',author:'方隅小镇'},
+    {art:'dungeon',title:'圣树夜境',author:'月见猫社'},
+    {art:'lake',title:'湖畔水榭',author:'Blessing 公会'},
+    {art:'sky',title:'楼台亭阁',author:'小鸡岛'},
+    {art:'rain',title:'雨夜水镇',author:'玩家作品'}
+  ],
+
+  guilds:[
+    {badge:'B',name:'Blessing',desc:'并肩同行的伙伴们，一起建设、一起冒险。',color:'linear-gradient(135deg,#f7b733,#ef7d3c)'},
+    {badge:'月',name:'月见猫社',desc:'猫与月亮的温柔角落，慢节奏的治愈日常。',color:'linear-gradient(135deg,#a07be0,#6f5fdd)'},
+    {badge:'鸡',name:'小鸡岛',desc:'热闹又欢乐的大家庭，永远不缺笑声。',color:'linear-gradient(135deg,#f4c14a,#f3936b)'},
+    {badge:'方',name:'方隅小镇',desc:'镇中之镇，自成一方天地的小小聚落。',color:'linear-gradient(135deg,#5db6e3,#4f8fdd)'}
+  ],
+
+  /* 公告：cls 决定小圆点和文字的颜色，g=绿 a=橙 s=蓝，随意搭配 */
+  news:[
+    {type:'公告',cls:'g',title:'RPG 玩法全面重构中，职业系统与副本地图正在开发',by:'镇长',date:'2026-06-01'},
+    {type:'更新',cls:'a',title:'生电独立世界正式开放，欢迎生电玩家与建筑师入驻',by:'镇长',date:'2026-05-18'},
+    {type:'公告',cls:'g',title:'手机端进服教程已更新，启动器完整安装指南',by:'镇长',date:'2026-05-10'},
+    {type:'更新',cls:'s',title:'公会系统上线测试，专属商店与对抗赛即将开启',by:'镇长',date:'2026-04-22'}
+  ],
+
+  /* Wiki 快捷问答：点标签或搜索命中关键词就展开答案。三个字段的分工是
+       q   匹配用的关键词（用户输入里含它、或它含用户输入都算命中）
+       tag 标签上显示的文字
+       a   展开的答案，可以用 <b> 加粗
+     这里只是首页上的一张速查卡，完整词条在 wiki.html 里，两边内容独立，
+     不用刻意保持一致。 */
+  wiki:[
+    {q:'进不去',tag:'进不去服务器',a:'先确认<b>游戏版本</b>与服务器一致，再检查地址有没有写错。仍然进不去的话，把报错截图发到 QQ 群里，管理员会帮你看。'},
+    {q:'赚钱',tag:'怎么赚钱',a:'新手推荐先做<b>每日任务</b>与<b>农作物出售</b>，稳定且不吃技术。攒到本金后可以开店、接建筑委托。'},
+    {q:'手机',tag:'手机玩家',a:'手机可以用第三方启动器进服，安装后导入游戏版本与账号即可。详细图文教程在 Wiki 的「手机进服」词条。'},
+    {q:'领地',tag:'领地圈地',a:'用圈地工具选中两个对角点即可创建领地，领地内其他人无法破坏方块。可以添加信任成员共同管理。'},
+    {q:'皮肤',tag:'更换皮肤',a:'离线登录的玩家用皮肤站上传皮肤后，在服务器内输入换肤指令刷新即可。'},
+    {q:'死亡',tag:'死亡惩罚',a:'主世界死亡会掉落物品但不扣钱；养老世界<b>没有死亡惩罚</b>，可以放心探索。'}
+  ],
+
+  /* 镇民（纯配色，不需要任何贴图）
+     数组顺序对应首屏从近到远的站位：第 1 位是最前面挥手的主角，
+     后面几位分散在小镇各处做不同动作（砍树、建造、耕种、钓鱼……）。
+     站位和动作在脚本的 RESIDENT_SLOTS 里定义，想调位置改那里；
+     这里只管每个人长什么样和说什么话。人数比站位多也没关系，
+     多出来的会在点击主角轮换时依次出场。 */
+  residents:[
+    {name:'镇长',greet:'嗨，我是镇长，欢迎回来~',skin:'#e8b78e',hair:'#4a3121',shirt:'#e0703c',pants:'#3b4a6b',shoe:'#2a2118'},
+    {name:'管理员',greet:'我是管理员，有事随时找我~',skin:'#d9a377',hair:'#2b2118',shirt:'#4f8fdd',pants:'#2f3a52',shoe:'#241c14'},
+    {name:'建筑师',greet:'这条街是我一块块摆出来的！',skin:'#f0c9a4',hair:'#6b4a2a',shirt:'#6cba5a',pants:'#4a3a26',shoe:'#2a2118'},
+    {name:'农夫',greet:'今年的麦子长得不错~',skin:'#e0ac7e',hair:'#3b2a1a',shirt:'#e8c65a',pants:'#5a6b3a',shoe:'#3a2a18'},
+    {name:'渔夫',greet:'湖边的鱼最近特别好钓。',skin:'#c98f63',hair:'#241c14',shirt:'#5db6e3',pants:'#2f4a5e',shoe:'#241c14'},
+    {name:'红石工程师',greet:'我的自动农场刚建好，来看看？',skin:'#eec9a2',hair:'#8a3a2a',shirt:'#b03a2e',pants:'#33333d',shoe:'#1e1a16'},
+    {name:'冒险者',greet:'副本里的宝箱我全开过一遍了。',skin:'#d7a271',hair:'#2f2f3a',shirt:'#8a6fd0',pants:'#3a3350',shoe:'#241c2a'},
+    {name:'新镇民',greet:'我刚搬进来，请多指教！',skin:'#f2cfa8',hair:'#4a3121',shirt:'#f3936b',pants:'#4a4a5a',shoe:'#2a2118'}
+  ]
+};
+/* ══════════════════════ CONFIG 结束 ══════════════════════ */
+
+/* 地址就是 CONFIG.host，不再拼端口。
+   导航栏、抽屉、页脚、复制按钮全都用这一个值。 */
+var ADDR = CONFIG.host;
+var ADDR_SHOW = CONFIG.host;
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function go(sel){var t=document.querySelector(sel);if(t)t.scrollIntoView({behavior:'smooth'});}
+
+/* ───── 套用 CONFIG 到页面 ───── */
+(function(){
+  var full=CONFIG.name1+CONFIG.name2;
+  document.title=full+' · 一座住着朋友的 Minecraft 小镇';
+  $('brandName').textContent=full;
+  $('footName').textContent=full;
+  $('heroName1').textContent=CONFIG.name1;
+  $('heroName2').textContent=CONFIG.name2;
+  $('heroTagline').textContent=CONFIG.tagline;
+  $('navIp').textContent=ADDR;
+  $('joinAddr').textContent=CONFIG.host;
+  $('drawerIp').textContent=ADDR_SHOW;
+  $('footIp').textContent=ADDR_SHOW;
+  $('footSub').textContent='QQ 群 '+CONFIG.qq;
+  $('footByline').textContent='打造玩家心中的世界 · '+full;
+
+  /* 运营天数 */
+  var d0=new Date(CONFIG.openDate+'T00:00:00');
+  var days=Math.max(0,Math.floor((Date.now()-d0.getTime())/86400000));
+  $('daysCount').dataset.target=days;
+  var m=CONFIG.openDate.split('-');
+  $('openSince').textContent=m[0]+'.'+parseInt(m[1],10)+' 开服至今';
+
+  /* 硬件条 */
+  var icons=[
+    '<svg viewBox="0 0 22 22"><rect x="3" y="3" width="16" height="16" rx="2.5"/><path d="M7 7h8M7 11h5M7 15h3"/></svg>',
+    '<svg viewBox="0 0 22 22"><rect x="2" y="8" width="18" height="6" rx="1.5"/><line x1="5" y1="8" x2="5" y2="14"/><line x1="9" y1="8" x2="9" y2="14"/><line x1="13" y1="8" x2="13" y2="14"/></svg>',
+    '<svg viewBox="0 0 22 22"><rect x="4" y="5" width="14" height="12" rx="2"/><circle cx="11" cy="11" r="2.5"/><line x1="11" y1="5" x2="11" y2="8.5"/></svg>'
+  ];
+  var hw='';
+  CONFIG.hardware.forEach(function(t,i){
+    if(i)hw+='<div class="hw-dot"></div>';
+    hw+='<div class="hw-spec">'+icons[i%icons.length]+esc(t)+'</div>';
+  });
+  hw+='<div class="hw-note">'+esc(CONFIG.hardwareNote)+'</div>';
+  $('hwBar').innerHTML=hw;
+
+  /* 玩法卡片 */
+  $('modesGrid').innerHTML=CONFIG.modes.map(function(m){
+    var cls=m.tag==='已开放'?'open':'wip';
+    return '<a class="mode fu'+(m.feat?' feat':'')+'" href="wiki.html#c/play">'+
+      '<div class="mode-art art-'+m.art+'"></div><div class="mode-pixel"></div><div class="mode-shade"></div>'+
+      '<div class="mode-body"><span class="mode-tag '+cls+'">'+esc(m.tag)+'</span>'+
+      '<div class="mode-name">'+esc(m.name)+'</div>'+
+      '<div class="mode-desc">'+esc(m.desc)+'</div>'+
+      '<span class="mode-go">了解玩法 →</span></div></a>';
+  }).join('');
+
+  /* 跑马灯 */
+  var cards=CONFIG.showcase.map(function(s){
+    return '<a class="pc" href="wiki.html#c/build"><div class="pc-art art-'+s.art+'"></div><div class="mode-pixel"></div>'+
+      '<div class="pc-cap"><span class="t">'+esc(s.title)+'</span>'+
+      '<span class="a">'+esc(s.author)+'</span></div></a>';
+  }).join('')+
+  '<a class="pc invite" href="wiki.html#c/build"><div class="invite-in"><div class="invite-plus">+</div>'+
+  '<div class="invite-t">你的建筑</div><div class="invite-d">就差你来建造</div></div></a>';
+  $('mqTrack').innerHTML=cards+cards;   /* 复制一份实现无缝循环 */
+
+  /* 公会 */
+  $('guildsGrid').innerHTML=CONFIG.guilds.map(function(g){
+    return '<div class="guild" style="--gc:'+g.color+'"><div class="guild-badge">'+esc(g.badge)+'</div>'+
+      '<div class="guild-name">'+esc(g.name)+'</div>'+
+      '<div class="guild-desc">'+esc(g.desc)+'</div></div>';
+  }).join('')+'<div class="guild-more">…… 还有更多公会，正在小镇里慢慢生长</div>';
+
+  /* 公告 */
+  $('newsGrid').innerHTML=CONFIG.news.map(function(n){
+    return '<div class="nc"><div class="nc-type '+n.cls+'">'+esc(n.type)+'</div>'+
+      '<div class="nc-h">'+esc(n.title)+'</div>'+
+      '<div class="nc-d">'+esc(n.by)+' · '+esc(n.date)+'</div></div>';
+  }).join('');
+
+  /* Wiki 标签 */
+  $('qtags').innerHTML=CONFIG.wiki.map(function(w,i){
+    return '<span class="qt" data-i="'+i+'">'+esc(w.tag)+'</span>';
+  }).join('');
+})();
+
+/* ───── 生成像素小镇（SVG 方块建筑）───── */
+(function(){
+  var W=1280,H=240,s=[];
+  function rect(x,y,w,h,fill,cls){
+    s.push('<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'"'+
+      (fill?' fill="'+fill+'"':'')+(cls?' class="'+cls+'"':'')+'/>');
+  }
+  /* 一块 16px 的「方块」，带高光和暗边，看起来像 MC 的方块 */
+  function block(x,y,c,sz){
+    sz=sz||16;
+    rect(x,y,sz,sz,c);
+    rect(x,y,sz,1,'rgba(255,255,255,.10)');
+    rect(x+sz-1,y,1,sz,'rgba(0,0,0,.14)');
+    rect(x,y+sz-1,sz,1,'rgba(0,0,0,.10)');
+  }
+  /* 石砖地基 */
+  function base(x,w,y){rect(x,y,w,8,'#8a8a8a');rect(x,y+8,w,8,'#727272');}
+  /* 房子：墙体 + 阶梯屋顶 + 门 + 窗 */
+  function house(cx,opt){
+    var w=opt.w,h=opt.h,wall=opt.wall,trim=opt.trim,roof=opt.roof,roof2=opt.roof2,door=opt.door;
+    var x=cx-w/2, y=224-h;
+    base(x-3,w+6,224);
+    rect(x,y,w,h,wall);
+    rect(x,y,w,8,trim); rect(x,y,9,h,trim); rect(x+w-9,y,9,h,trim);
+    /* 方块网格纹理 */
+    for(var gx=x;gx<x+w;gx+=16){rect(gx,y,1,h,'rgba(0,0,0,.07)');}
+    for(var gy=y;gy<224;gy+=16){rect(x,gy,w,1,'rgba(0,0,0,.06)');}
+    /* 阶梯屋顶 */
+    var rw=w+34, ry=y-11, alt=true;
+    while(rw>20){
+      rect(cx-rw/2,ry,rw,13,alt?roof:roof2);
+      rw-=2*11; ry-=11; alt=!alt;
+    }
+    /* 烟囱 */
+    if(opt.chimney){
+      rect(cx-w/2+w*0.24,ry+2,14,24,'#8a8a8a');
+      rect(cx-w/2+w*0.24-2,ry,18,4,'#727272');
+    }
+    /* 门 */
+    rect(cx-10,224-opt.doorH,20,opt.doorH,door);
+    rect(cx-12,224-opt.doorH-3,24,3,trim);
+    rect(cx+4,224-opt.doorH+opt.doorH/2-2,3,3,'#d4b040');
+    /* 窗（两列，opt.rows 行）*/
+    for(var r=0;r<opt.rows;r++){
+      var wy=y+16+r*40;
+      [cx-w/2+14,cx+w/2-40].forEach(function(wx){
+        rect(wx,wy,26,26,opt.frame);
+        rect(wx+2,wy+2,22,22,null,'win');
+        rect(wx+12,wy+2,2,22,opt.frame);
+        rect(wx+2,wy+12,22,2,opt.frame);
+      });
+    }
+  }
+  /* 树 */
+  function tree(cx,scale){
+    scale=scale||1;
+    var th=Math.round(54*scale);
+    rect(cx-5,224-th,10,th,'#5c4020');
+    rect(cx-22,224-th-36*scale,44,36*scale,'#4a8a2a');
+    rect(cx-15,224-th-52*scale,30,20*scale,'#5ca034');
+    rect(cx-8,224-th-64*scale,16,14*scale,'#4a8a2a');
+  }
+  /* 路灯（夜晚灯罩变亮）*/
+  function lamp(x){
+    rect(x,181,5,44,'#606060');
+    rect(x,181,16,5,'#606060');
+    rect(x+14,175,14,14,'#2a2a2a');
+    rect(x+15,176,12,12,null,'lamp-on');
+  }
+  /* 麦田 */
+  function farm(x,w){
+    rect(x,209,w,16,'#6b4f20');
+    rect(x,209,16,16,'#3a6699');           /* 水源方块 */
+    for(var i=x+6;i<x+w-6;i+=20){rect(i,195,8,14,'#d4a900');}
+  }
+
+  s.push('<g>');
+  /* 从左到右布置小镇 */
+  tree(100);
+  lamp(170);
+  house(250,{w:112,h:80,wall:'#c8a86a',trim:'#6b4a2a',roof:'#7d5a36',roof2:'#5a3a20',
+    door:'#3a2010',frame:'#5a3a18',doorH:34,rows:1,chimney:true});
+  lamp(316);
+  farm(330,62);
+  house(448,{w:104,h:74,wall:'#b87a4e',trim:'#7a3020',roof:'#7a3018',roof2:'#5e2416',
+    door:'#2e1408',frame:'#4a1a10',doorH:39,rows:1});
+  lamp(502);
+  tree(546,1.05);
+  lamp(574);
+  house(650,{w:148,h:110,wall:'#c8a96a',trim:'#6b5a36',roof:'#4e3618',roof2:'#3a2710',
+    door:'#1e1408',frame:'#2d1e0c',doorH:42,rows:2,chimney:true});
+  lamp(728);
+  house(790,{w:88,h:68,wall:'#3c2a14',trim:'#1a1008',roof:'#22120a',roof2:'#1a0e06',
+    door:'#0e0804',frame:'#1a1008',doorH:36,rows:1});
+  lamp(840);
+  tree(896);
+  house(978,{w:144,h:112,wall:'#d4c499',trim:'#a8906a',roof:'#5a4828',roof2:'#4a3a1e',
+    door:'#2a2010',frame:'#3a2e18',doorH:42,rows:2,chimney:true});
+  lamp(1046);
+  house(1086,{w:92,h:68,wall:'#7d5a36',trim:'#3d2e15',roof:'#3a2510',roof2:'#2a1a08',
+    door:'#1a1008',frame:'#3d2e15',doorH:36,rows:1});
+  tree(1147,.95);
+  lamp(1138);
+  house(1204,{w:88,h:64,wall:'#c8a96a',trim:'#6b5a36',roof:'#4e3618',roof2:'#3a2710',
+    door:'#1e1408',frame:'#2d1e0c',doorH:34,rows:1});
+  s.push('</g>');
+
+  $('town').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMax meet">'+s.join('')+'</svg>';
+})();
+
+/* ───── 生成镇民 ───── */
+var RESIDENT_SLOTS=[
+  {left:'60%',b:'64px',z:7,u:'5px',pose:'wave',owner:true},
+  {left:'39%',b:'62px',z:6,u:'4.2px',pose:'chop'},
+  {left:'70%',b:'64px',z:6,u:'4.2px',pose:'build'},
+  {left:'27%',b:'62px',z:5,u:'4px',pose:'farm'},
+  {left:'79%',b:'64px',z:5,u:'4px',pose:'fish'},
+  {left:'20%',b:'62px',z:4,u:'4px',pose:'idle'},
+  {left:'88%',b:'64px',z:4,u:'4px',pose:'watch'},
+  {left:'48%',b:'60px',z:3,u:'3.6px',pose:'sway'}
+];
+(function(){
+  var html=RESIDENT_SLOTS.map(function(sl,i){
+    var r=CONFIG.residents[i%CONFIG.residents.length];
+    var vars='--skin:'+r.skin+';--hair:'+r.hair+';--shirt:'+r.shirt+
+             ';--pants:'+r.pants+';--shoe:'+r.shoe;
+    return '<div class="player'+(sl.owner?' owner':'')+'" data-i="'+i+'" '+
+      'style="left:'+sl.left+';--b:'+sl.b+';--z:'+sl.z+';--u:'+sl.u+'">'+
+      '<div class="player-shadow"></div>'+
+      '<div class="mc '+sl.pose+'" style="'+vars+'">'+
+        '<div class="mc-part mc-armR"></div>'+
+        '<div class="mc-part mc-legL"></div>'+
+        '<div class="mc-part mc-legR"></div>'+
+        '<div class="mc-part mc-body"></div>'+
+        '<div class="mc-part mc-head"></div>'+
+        '<div class="mc-part mc-armL"></div>'+
+      '</div></div>';
+  }).join('');
+  $('crowd').innerHTML=html;
+})();
+
+/* ───── 在线玩家头像条（首字母 + 稳定配色）───── */
+(function(){
+  var el=$('players'); if(!el) return;
+  var label='<span class="pav-label">居民 ·</span>';
+  var list=CONFIG.residents.concat(CONFIG.residents.slice(0,6));
+  var html=list.map(function(r){
+    var hash=0,n=r.name;
+    for(var i=0;i<n.length;i++)hash=n.charCodeAt(i)+((hash<<5)-hash);
+    var hue=((hash%360)+360)%360;
+    return '<div class="pav" title="'+esc(n)+'" style="background:hsl('+hue+',48%,30%)">'+
+      esc(n.charAt(0))+'</div>';
+  }).join('');
+  el.innerHTML=label+html+'<div class="pav-more">+ 更多镇民</div>';
+})();
+
+/* ───── 鸟群 ───── */
+(function(){
+  var wrap=$('birdWrap'); if(!wrap) return;
+  var html='';
+  for(var i=0;i<7;i++){
+    var top=8+Math.random()*30, dur=22+Math.random()*26, delay=-Math.random()*40;
+    var sc=.55+Math.random()*.6, op=.18+Math.random()*.22;
+    html+='<svg class="brd" viewBox="0 0 40 14" width="'+(34*sc)+'" '+
+      'style="top:'+top+'%;left:0;animation-duration:'+dur+'s;animation-delay:'+delay+'s;opacity:'+op+'">'+
+      '<path d="M2 8 Q9 1 16 8" stroke="rgba(60,50,35,.85)" stroke-width="1.6"/>'+
+      '<path d="M18 9 Q26 2 34 9" stroke="rgba(60,50,35,.85)" stroke-width="1.6"/></svg>';
+  }
+  wrap.innerHTML=html;
+})();
+
+/* ───── 星空 ───── */
+(function(){
+  var c=$('stars'); if(!c) return;
+  var ctx=c.getContext('2d'), S=[], host=$('hero');
+  function sz(){c.width=host.clientWidth;c.height=host.clientHeight;}
+  sz(); window.addEventListener('resize',sz,{passive:true});
+  for(var i=0;i<110;i++)S.push({x:Math.random(),y:Math.random()*.62,
+    r:Math.random()*1.4+.3,p:Math.random()*6.28,s:Math.random()*.038+.009});
+  (function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    if(document.body.classList.contains('night')){
+      S.forEach(function(t){t.p+=t.s;var a=.3+Math.abs(Math.sin(t.p))*.7;
+        ctx.beginPath();ctx.arc(t.x*c.width,t.y*c.height,t.r,0,6.28);
+        ctx.fillStyle='rgba(255,250,230,'+a+')';ctx.fill();});
+    }
+    requestAnimationFrame(draw);
+  })();
+})();
+
+/* ───── 粒子（白天暖金萤火 / 夜晚冷蓝星尘，鼠标排斥）───── */
+(function(){
+  var c=$('particles'); if(!c) return;
+  var ctx=c.getContext('2d'), host=$('hero');
+  function sz(){c.width=host.clientWidth;c.height=host.clientHeight;}
+  sz(); window.addEventListener('resize',sz,{passive:true});
+  var P=[],MX=-9999,MY=-9999;
+  for(var i=0;i<150;i++)P.push({x:Math.random(),y:Math.random(),r:Math.random()*1.9+.4,
+    vx:(Math.random()-.5)*.2,vy:-(Math.random()*.3+.07),a:Math.random(),da:Math.random()*.008+.002});
+  host.addEventListener('mousemove',function(e){
+    var r=host.getBoundingClientRect();MX=e.clientX-r.left;MY=e.clientY-r.top;},{passive:true});
+  host.addEventListener('mouseleave',function(){MX=-9999;MY=-9999;});
+  (function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    var night=document.body.classList.contains('night');
+    P.forEach(function(p){
+      var px=p.x*c.width,py=p.y*c.height;
+      var dx=px-MX,dy=py-MY,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120&&d>0){var f=(120-d)/120*.55;p.vx+=dx/d*f;p.vy+=dy/d*f;}
+      p.vx*=.94;p.vy*=.94;
+      if(p.vy>-.05)p.vy-=.035;
+      p.x+=p.vx/c.width;p.y+=p.vy/c.height;
+      p.a+=p.da; if(p.a>1||p.a<0)p.da=-p.da;
+      if(p.y<-.01){p.y=1.01;p.x=Math.random();}
+      if(p.x<-.01)p.x=1.01; if(p.x>1.01)p.x=-.01;
+      var al=Math.max(0,Math.min(1,p.a));
+      ctx.shadowBlur=night?12:9;
+      if(night){ctx.fillStyle='rgba(200,220,255,'+al*.6+')';ctx.shadowColor='rgba(160,200,255,.85)';}
+      else{ctx.fillStyle='rgba(255,212,100,'+al*.42+')';ctx.shadowColor='rgba(255,175,70,.9)';}
+      ctx.beginPath();ctx.arc(px,py,p.r,0,6.28);ctx.fill();
+    });
+    ctx.shadowBlur=0;
+    requestAnimationFrame(draw);
+  })();
+})();
+
+/* ───── 昼夜切换（圆形揭示 + 记忆）───── */
+(function(){
+  var saved=null;
+  try{saved=localStorage.getItem('town-night');}catch(e){}
+  var h=new Date().getHours();
+  var night=saved!==null?saved==='1':(h>=19||h<6);
+  if(night)document.body.classList.add('night');
+})();
+function applyNight(n){
+  document.body.classList.toggle('night',n);
+  try{localStorage.setItem('town-night',n?'1':'0');}catch(e){}
+}
+function toggleNight(ev){
+  ev=ev||window.event;
+  var willNight=!document.body.classList.contains('night');
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!document.startViewTransition||reduce){applyNight(willNight);return;}
+  var x=(ev&&ev.clientX)?ev.clientX:window.innerWidth-48;
+  var y=(ev&&ev.clientY)?ev.clientY:42;
+  var endR=Math.hypot(Math.max(x,window.innerWidth-x),Math.max(y,window.innerHeight-y));
+  var t=document.startViewTransition(function(){
+    document.documentElement.classList.add('vt-active');applyNight(willNight);});
+  t.ready.then(function(){
+    document.documentElement.animate(
+      {clipPath:['circle(0px at '+x+'px '+y+'px)','circle('+endR+'px at '+x+'px '+y+'px)']},
+      {duration:640,easing:'cubic-bezier(.4,0,.2,1)',pseudoElement:'::view-transition-new(root)'});
+  });
+  (t.finished||Promise.resolve()).then(
+    function(){document.documentElement.classList.remove('vt-active');},
+    function(){document.documentElement.classList.remove('vt-active');});
+}
+
+/* ───── 导航滚动态 ───── */
+window.addEventListener('scroll',function(){
+  var n=$('nav');
+  n.classList.toggle('solid',window.scrollY>10);
+  n.classList.toggle('shrink',window.scrollY>60);
+  var cue=$('scrollCue');
+  if(cue)cue.style.opacity=window.scrollY>60?'0':'1';
+},{passive:true});
+
+/* ───── 抽屉菜单 ───── */
+function closeDrawer(){
+  $('ham').classList.remove('open');
+  $('drawer').classList.remove('open');
+  $('dov').classList.remove('open');
+  document.body.style.overflow='';
+}
+$('ham').addEventListener('click',function(){
+  var o=this.classList.toggle('open');
+  $('drawer').classList.toggle('open',o);
+  $('dov').classList.toggle('open',o);
+  document.body.style.overflow=o?'hidden':'';
+});
+$('dov').addEventListener('click',closeDrawer);
+$('drawer').querySelectorAll('a').forEach(function(a){a.addEventListener('click',closeDrawer);});
+
+/* ───── 数字滚动 ───── */
+function countUp(el,target,dur){
+  var s=null;
+  function step(ts){
+    if(!s)s=ts;
+    var p=Math.min((ts-s)/dur,1);
+    el.textContent=Math.round((1-Math.pow(1-p,3))*target).toLocaleString();
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+var cObs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.count[data-target]').forEach(function(el){
+        countUp(el,parseInt(el.dataset.target,10)||0,1400);});
+      cObs.unobserve(e.target);
+    }
+  });
+},{threshold:.3});
+document.querySelectorAll('.stats').forEach(function(el){cObs.observe(el);});
+
+/* ───── 状态接口返回值归一化 ─────
+   不同查询服务的字段名不一样，这里统一成一种形状，
+   免得换接口就要改渲染代码。目前认得两类：
+
+   1) mcmotdapi（github.com/mcmotd/mcmotdapi）
+      在线：{status:'online', players:{online,max,sample}, pureMotd, motd,
+             version, delay, type:'Java'|'Bedrock', icon}
+      离线：{status:'offline', host, error}
+      注意它用的是字符串 status，没有布尔 online 字段。
+      另外 Bedrock 那条分支的人数是字符串，要转成数字。
+
+   2) mcsrvstat 那一类
+      {online:true, players:{online,max}, motd:{clean:[...]}}
+
+   两种都不匹配时返回 online:false，页面会显示「离线」。 */
+function normalizeStatus(d){
+  var out={online:false,players:0,max:0,motd:'',version:'',delay:null,type:''};
+  if(!d||typeof d!=='object') return out;
+
+  var up = (d.status==='online') || (d.online===true);
+  if(!up) return out;
+
+  var p=d.players||{};
+  /* Bedrock 分支给的是字符串，统一转数字；转不出来当 0 */
+  function num(v){var n=parseInt(v,10);return isNaN(n)?0:n;}
+  out.online  = true;
+  out.players = num(p.online!=null?p.online:d.currentPlayers);
+  out.max     = num(p.max!=null?p.max:d.maxPlayers);
+  out.version = d.version||'';
+  out.type    = d.type||'';
+  out.delay   = (typeof d.delay==='number')?d.delay:null;
+
+  /* MOTD：优先用已经去掉颜色代码的纯文本。
+     mcsrvstat 那类是 motd.clean 数组，mcmotdapi 是 pureMotd 字符串。 */
+  if(typeof d.pureMotd==='string')            out.motd=d.pureMotd;
+  else if(d.motd&&Array.isArray(d.motd.clean))out.motd=d.motd.clean.join(' ');
+  else if(typeof d.motd==='string')           out.motd=d.motd;
+  return out;
+}
+
+/* MOTD 显示到首屏标语下方。没有对应容器就静默跳过 ——
+   这样删掉那个节点也不会报错。 */
+function showMotd(text){
+  /* MOTD 常有两行，而且服主爱用空格排版（实测 Hypixel 那条就是）。
+     textContent 不会把 \n 渲染成换行，连续空格也会被 HTML 折叠，
+     所以这里统一压成单个空格，读起来才正常。 */
+  text=String(text||'').replace(/\s*\n\s*/g,' ').replace(/\s{2,}/g,' ').trim();
+  if(!text) return;
+  var box=$('motdLine');
+  if(!box) return;
+  box.textContent=text;
+  box.style.display='';
+}
+
+/* ───── 在线人数 ───── */
+(function(){
+  var ns=$('ns'), on=$('statOnline'), eb=$('ebCount');
+  function paint(n){
+    window._online=n;
+    ns.textContent=n+' 人在线';
+    eb.textContent=n;
+    countUp(on,n,1200);
+  }
+  function offline(){
+    ns.textContent='离线';
+    document.querySelector('.dot').style.background='#e0604f';
+    on.textContent='0'; eb.textContent='0';
+  }
+  if(!CONFIG.fakeOnline && CONFIG.statusApi){
+    fetch(CONFIG.statusApi).then(function(r){return r.json();}).then(function(d){
+      var s=normalizeStatus(d);
+      if(s.online){
+        paint(s.players);
+        if(s.max)   window._maxPlayers=s.max;
+        if(s.motd)  showMotd(s.motd);
+        if(s.delay!=null) window._delay=s.delay;
+      }else{ offline(); }
+    }).catch(function(){ns.textContent='状态未知';on.textContent='—';eb.textContent='—';});
+  }else{
+    /* 演示用：在基准值附近轻微浮动，并随时间缓慢变化 */
+    var base=CONFIG.onlineBase;
+    var n=Math.max(1,base+Math.floor(Math.random()*7)-3);
+    paint(n);
+    setInterval(function(){
+      n=Math.max(1,Math.min(base+8,n+(Math.random()<.5?-1:1)));
+      ns.textContent=n+' 人在线';
+      eb.textContent=n;
+      on.textContent=n;
+      window._online=n;
+    },9000);
+  }
+})();
+
+/* ───── 主角气泡 + 点击换镇民 ───── */
+(function(){
+  var bubble=$('bubble'), nameTag=$('nameTag'), hit=$('ownerHit');
+  var ownerEl=document.querySelector('.player.owner .mc');
+  var idx=0, timer, nextTimer;
+  var lines=[
+    function(){return '欢迎来到'+CONFIG.name1+CONFIG.name2+'！<br>一起创造美好的回忆吧~';},
+    function(){return '今天有 <b>'+(window._online||'…')+'</b> 位镇民在线哦';},
+    '新来的话，先看看「玩法介绍」吧',
+    '点我一下，认识小镇的其他居民~',
+    '点点我四周的牌子逛逛小镇~'
+  ];
+  var li=0;
+  function show(html,ms){
+    clearTimeout(timer);clearTimeout(nextTimer);
+    bubble.innerHTML=html;
+    bubble.classList.add('show');
+    timer=setTimeout(function(){
+      bubble.classList.remove('show');
+      nextTimer=setTimeout(sayNext,3500);
+    },ms||2800);
+  }
+  function sayNext(){
+    var l=lines[li];
+    show(typeof l==='function'?l():l,3600);
+    li=(li+1)%lines.length;
+  }
+  function applyResident(i){
+    var r=CONFIG.residents[i%CONFIG.residents.length];
+    ownerEl.style.setProperty('--skin',r.skin);
+    ownerEl.style.setProperty('--hair',r.hair);
+    ownerEl.style.setProperty('--shirt',r.shirt);
+    ownerEl.style.setProperty('--pants',r.pants);
+    ownerEl.style.setProperty('--shoe',r.shoe);
+    nameTag.textContent=r.name;
+    return r;
+  }
+  nameTag.textContent=CONFIG.residents[0].name;
+  setTimeout(sayNext,900);
+  hit.addEventListener('mouseenter',function(){
+    if(idx===0)show('嗨~ 点我可以认识更多镇民哦',2600);
+  });
+  hit.addEventListener('click',function(){
+    idx++;
+    var r=applyResident(idx);
+    ownerEl.classList.remove('wave','cheer');
+    void ownerEl.offsetWidth;                      /* 重启动画 */
+    ownerEl.classList.add(Math.random()<.5?'cheer':'wave');
+    show(esc(r.greet),2600);
+  });
+})();
+
+/* ───── Wiki 快捷问答 ───── */
+(function(){
+  var ans=$('wikiAnswer'), input=$('wi');
+  function reveal(i){
+    var w=CONFIG.wiki[i];
+    ans.innerHTML='<b>'+esc(w.tag)+'</b><br>'+w.a;
+    ans.classList.add('show');
+    ans.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  $('qtags').addEventListener('click',function(e){
+    var t=e.target.closest('.qt');
+    if(t)reveal(parseInt(t.dataset.i,10));
+  });
+  function search(){
+    var v=input.value.trim();
+    if(!v)return;
+    for(var i=0;i<CONFIG.wiki.length;i++){
+      var w=CONFIG.wiki[i];
+      if(v.indexOf(w.q)>=0||w.q.indexOf(v)>=0||w.tag.indexOf(v)>=0){reveal(i);return;}
+    }
+    ans.innerHTML='没找到「'+esc(v)+'」相关的词条。<br>可以到 QQ 群里问问管理员，或者试试上面的常见问题。';
+    ans.classList.add('show');
+  }
+  input.addEventListener('keydown',function(e){if(e.key==='Enter')search();});
+})();
+
+/* ───── 复制 IP ───── */
+function copyIP(el){
+  function done(){
+    showToast('地址已复制：'+ADDR);
+    if(!el)return;
+    el.classList.add('ok');
+    setTimeout(function(){el.classList.remove('ok');},2000);
+  }
+  function fallback(){
+    var ta=document.createElement('textarea');
+    ta.value=ADDR;ta.setAttribute('readonly','');
+    ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');}catch(e){}
+    document.body.removeChild(ta);done();
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ADDR).then(done).catch(fallback);
+  }else{fallback();}
+}
+function showToast(m){
+  var t=$('toast');
+  t.textContent=m;t.classList.add('show');
+  clearTimeout(t._h);
+  t._h=setTimeout(function(){t.classList.remove('show');},2000);
+}
+
+/* ───── 滚动淡入 ───── */
+var obs=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){e.target.classList.add('vis');obs.unobserve(e.target);}
+  });
+},{threshold:.08});
+document.querySelectorAll('.fu,.mode').forEach(function(el){obs.observe(el);});
+
+/* ───── 卡片 3D 倾斜（仅桌面）───── */
+(function(){
+  if(!window.matchMedia('(pointer:fine)').matches)return;
+  document.querySelectorAll('.why,.guild').forEach(function(card){
+    card.addEventListener('mousemove',function(e){
+      var r=card.getBoundingClientRect();
+      var x=(e.clientX-r.left)/r.width-.5;
+      var y=(e.clientY-r.top)/r.height-.5;
+      card.style.transform='translateY(-6px) perspective(700px) rotateY('+(x*10)+'deg) rotateX('+(-y*10)+'deg)';
+      card.style.boxShadow='0 22px 52px rgba(150,100,40,.2)';
+      card.style.transition='box-shadow .2s';
+    });
+    card.addEventListener('mouseleave',function(){
+      card.style.transition='transform .5s ease,box-shadow .3s';
+      card.style.transform='';card.style.boxShadow='';
+      setTimeout(function(){card.style.transition='';},500);
+    });
+  });
+})();
+
+/* ───── 场景标牌就位 ───── */
+setTimeout(function(){$('hero').classList.add('ready');},120);
+</script>
+<!-- 登录（AuthMe）。接口没部署时会自动隐藏入口，页面照常可用 -->
+<script src="auth.js" defer></script>
+</body>
+</html>
