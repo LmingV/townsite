@@ -65,9 +65,11 @@
     'background:var(--cream2);border:1px solid var(--line2);border-radius:14px;',
     'box-shadow:0 14px 36px rgba(60,40,20,.2);z-index:600;}',
     '.au-drop.open{display:block;}',
-    '.au-drop button{display:block;width:100%;text-align:left;font-family:inherit;font-size:13.5px;',
-    'font-weight:700;color:var(--ink);background:none;border:0;padding:9px 12px;border-radius:9px;cursor:pointer;}',
-    '.au-drop button:hover{background:var(--paper);color:var(--orange);}',
+    /* 后台入口是 <a>（要能新标签打开），其余是 <button>，样式统一在这里 */
+    '.au-drop button,.au-drop a{display:block;width:100%;text-align:left;font-family:inherit;font-size:13.5px;',
+    'font-weight:700;color:var(--ink);background:none;border:0;padding:9px 12px;border-radius:9px;cursor:pointer;',
+    'text-decoration:none;box-sizing:border-box;}',
+    '.au-drop button:hover,.au-drop a:hover{background:var(--paper);color:var(--orange);}',
     '.au-drop .sep{height:1px;background:var(--line);margin:5px 0;}',
     '.au-drop .out{color:#c0392b;}',
     /* 遮罩与弹窗 */
@@ -430,6 +432,21 @@
         e.stopPropagation(); drop.classList.remove('open'); open(submitDialog());
       });
       drop.appendChild(b2);
+    }
+    /* 管理后台入口。只有管理组和站长会看到这一项 ——
+       feat.admin 由后端算出来，前端改它也进不去，
+       admin.php 每个接口都自己再判一次权限。 */
+    if (S.feat.admin) {
+      drop.appendChild(el('div', 'sep'));
+      var b4 = el('a', null, '管理后台');
+      b4.href = 'admin.html';
+      /* 待审数量提示，让人不用点进去就知道有没有活干 */
+      api('admin.php?action=pending').then(function (j) {
+        if (j && j.ok && j.list && j.list.length) {
+          b4.textContent = '管理后台（' + j.list.length + ' 篇待审）';
+        }
+      }).catch(function () { /* 拿不到就算了，不影响入口可用 */ });
+      drop.appendChild(b4);
     }
     drop.appendChild(el('div', 'sep'));
     var b3 = el('button', 'out', '退出登录');

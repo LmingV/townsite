@@ -71,6 +71,18 @@ else
   c_y "[!] config.php 里有数据库密码是空的，相关功能会连不上"
 fi
 
+# 站长没配的话谁也进不去管理后台，包括你自己。
+# config.php 不在版本库里，所以每次都值得提醒一次。
+if "$PHP" -r '
+$c = include "api/config.php";
+exit(trim((string)($c["site_owner"] ?? "")) === "" ? 1 : 0);
+' 2>/dev/null; then
+  c_g "[OK] 站长已配置"
+else
+  c_y "[!] config.php 里没有 site_owner，管理后台谁也进不去"
+  c_y "    在 wiki_editors 那段前面加一行：  'site_owner' => 'IN7_',"
+fi
+
 # ── 3. 拉代码 ──
 echo
 echo "拉取最新代码…"
@@ -129,6 +141,40 @@ for f in api/config.dev.php api/selftest.php; do
   fi
 done
 c_g "[OK] 开发专用文件没有上线"
+
+# ── 5.5 新表建了没 ──
+# schema.sql 加了表但没导的话，后台会报错。
+# 这里只查不建 —— 自动执行 DDL 太容易在出错时留下半截结构。
+echo
+MISS="$("$PHP" -r '
+$c = include "api/config.php";
+$s = $c["site"] ?? null;
+if (!$s || !($s["enabled"] ?? false)) { echo ""; exit; }
+try {
+    $pdo = new PDO(
+        sprintf("mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4",
+                $s["host"], (int)$s["port"], $s["dbname"]),
+        $s["user"], $s["pass"],
+        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+    $miss = [];
+    foreach (["site_roles", "audit_log"] as $t) {
+        $q = $pdo->prepare("SHOW TABLES LIKE ?");
+        $q->execute([$t]);
+        if (!$q->fetch()) $miss[] = $t;
+    }
+    echo implode(" ", $miss);
+} catch (Exception $e) { echo "__ERR__"; }
+' 2>/dev/null || echo "__ERR__")"
+
+if [ "$MISS" = "__ERR__" ]; then
+  c_y "[!] 连不上站点库，跳过建表检查"
+elif [ -n "$MISS" ]; then
+  c_y "[!] 缺少数据表：$MISS"
+  c_y "    管理后台会报错。导一下（可重复执行，不会动已有数据）："
+  c_y "        mysql -u townsite -p townsite < api/schema.sql"
+else
+  c_g "[OK] 数据表齐全"
+fi
 
 # ── 6. 权限 ──
 # 宝塔的 nginx 跑在 www 用户下。属主不对会 403。

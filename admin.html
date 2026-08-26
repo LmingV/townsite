@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>管理后台 · 永恒流光</title>
+<style>
+:root{
+  --cream:#fbf3e3;--cream2:#fffaf0;--paper:#f6ead2;
+  --ink:#42352a;--ink2:#6f5f4c;--dim:#9c8b72;
+  --sun:#f4a521;--orange:#ef7d3c;--coral:#f3936b;--sky:#4facdd;--grass:#6cba5a;
+  --red:#d9534f;
+  --line:rgba(120,90,50,.14);--line2:rgba(120,90,50,.24);
+  --sh:0 14px 38px rgba(150,100,40,.13);--sh-sm:0 6px 18px rgba(150,100,40,.1);
+  --rl:20px;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--cream);color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse at 15% 8%,rgba(244,165,33,.055) 0%,transparent 46%),
+    radial-gradient(ellipse at 85% 92%,rgba(239,125,60,.042) 0%,transparent 46%);}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px;}
+
+/* ── 顶部 ── */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;}
+.top h1{font-size:22px;font-weight:800;letter-spacing:.02em;}
+.top .who{margin-left:auto;font-size:13px;color:var(--ink2);}
+.badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;
+  font-weight:700;vertical-align:middle;margin-left:6px;}
+.badge.owner{background:rgba(244,165,33,.18);color:#8a5a00;}
+.badge.admin{background:rgba(79,172,221,.18);color:#1c5f85;}
+.badge.editor{background:rgba(108,186,90,.18);color:#33652a;}
+.home{font-size:13px;color:var(--ink2);text-decoration:none;
+  border-bottom:1px dashed var(--line2);}
+.home:hover{color:var(--orange);}
+
+/* ── 标签页 ── */
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+.tab{padding:10px 18px;font-size:14px;font-weight:600;color:var(--ink2);
+  background:none;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;font-family:inherit;}
+.tab:hover{color:var(--ink);}
+.tab.on{color:var(--orange);border-bottom-color:var(--orange);}
+.tab .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;
+  background:var(--orange);color:#fff;border-radius:999px;
+  font-size:11px;line-height:18px;text-align:center;}
+.tab.on .n{background:var(--orange);}
+.pane{display:none;}
+.pane.on{display:block;}
+
+/* ── 卡片 ── */
+.card{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);
+  padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh-sm);}
+.card h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+.meta{font-size:12px;color:var(--dim);margin-bottom:10px;}
+.meta b{color:var(--ink2);font-weight:600;}
+.sum{font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:12px;}
+.body{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;font-size:13px;line-height:1.85;white-space:pre-wrap;
+  word-break:break-word;max-height:420px;overflow:auto;margin-bottom:12px;}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.grow{flex:1;min-width:140px;}
+
+/* ── 控件 ── */
+input,select,textarea{font-family:inherit;font-size:13px;color:var(--ink);
+  background:var(--cream2);border:1.5px solid var(--line2);border-radius:10px;
+  padding:9px 12px;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--sun);}
+label{display:block;font-size:12px;font-weight:600;color:var(--ink2);
+  margin-bottom:5px;}
+.fld{margin-bottom:12px;}
+button{font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;border-radius:10px;padding:9px 18px;color:#fff;
+  background:linear-gradient(135deg,var(--sun),var(--orange));
+  box-shadow:0 4px 12px rgba(239,125,60,.28);}
+button:hover{filter:brightness(1.06);}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none;}
+button.ghost{background:none;color:var(--ink2);border:1.5px solid var(--line2);
+  box-shadow:none;}
+button.ghost:hover{border-color:var(--sun);color:var(--ink);}
+button.danger{background:none;color:var(--red);border:1.5px solid rgba(217,83,79,.4);
+  box-shadow:none;}
+button.danger:hover{background:rgba(217,83,79,.08);}
+button.sm{padding:6px 12px;font-size:12px;}
+
+/* ── 表格 ── */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);}
+th{font-size:12px;font-weight:700;color:var(--ink2);
+  background:var(--paper);}
+tr:last-child td{border-bottom:none;}
+td.act{text-align:right;white-space:nowrap;}
+
+/* ── 提示 ── */
+.empty{text-align:center;padding:52px 20px;color:var(--dim);font-size:14px;}
+.loading{text-align:center;padding:80px 20px;color:var(--dim);font-size:14px;}
+.err{background:rgba(217,83,79,.08);border:1px solid rgba(217,83,79,.25);
+  color:#a33;border-radius:12px;padding:12px 16px;font-size:13px;
+  line-height:1.7;margin-bottom:14px;}
+.note{background:rgba(79,172,221,.07);border:1px solid rgba(79,172,221,.2);
+  border-radius:12px;padding:12px 16px;font-size:12.5px;line-height:1.75;
+  color:var(--ink2);margin-bottom:16px;}
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);
+  background:var(--ink);color:var(--cream);padding:12px 22px;border-radius:999px;
+  font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;
+  max-width:86vw;text-align:center;}
+
+/* ── 遮罩弹窗 ── */
+.mask{position:fixed;inset:0;background:rgba(40,30,18,.5);z-index:90;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.dlg{background:var(--cream2);border-radius:var(--rl);box-shadow:var(--sh);
+  padding:24px;max-width:520px;width:100%;max-height:86vh;overflow:auto;}
+.dlg h3{font-size:17px;margin-bottom:6px;}
+.dlg p{font-size:13px;color:var(--ink2);line-height:1.75;margin-bottom:16px;}
+
+@media (max-width:600px){
+  .wrap{padding:20px 14px 60px;}
+  .top h1{font-size:19px;}
+  th:nth-child(3),td:nth-child(3){display:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">正在核对身份…</div>
+</div>
+<script>
+/* ============================================================
+   管理后台
+   ------------------------------------------------------------
+   一切权限判定都在后端。这里的显示/隐藏只是界面便利，
+   把按钮改出来也调不动接口。
+   所有用户内容一律走 textContent，不拼 innerHTML。
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var API = 'api/';
+  var S = { csrf: '', me: null, role: '', owner: false, tab: 'review' };
+
+  var CAT = {
+    start: '新手上路', land: '领地', money: '经济', play: '玩法',
+    build: '建筑', trouble: '疑难', rule: '规则'
+  };
+  var ROLE_CN = { owner: '站长', admin: '管理组', editor: '编辑组' };
+
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt != null) n.textContent = txt;
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  function api(path, opt) {
+    opt = opt || {};
+    opt.credentials = 'same-origin';
+    opt.headers = opt.headers || {};
+    if (opt.body) {
+      opt.method = 'POST';
+      opt.headers['Content-Type'] = 'application/json';
+      opt.headers['X-CSRF-Token'] = S.csrf;
+      opt.body = JSON.stringify(opt.body);
+    }
+    return fetch(API + path, opt).then(function (r) {
+      return r.json().catch(function () {
+        throw new Error('服务器返回了非 JSON 内容，可能是 PHP 报错了');
+      });
+    });
+  }
+
+  var toastTimer;
+  function toast(m) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var t = el('div', 'toast', m);
+    document.body.appendChild(t);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.remove(); }, 3800);
+  }
+
+  function fmt(s) {
+    if (!s) return '—';
+    return String(s).replace('T', ' ').slice(0, 16);
+  }
+
+  /* ── 确认弹窗。原生 confirm 在手机上很难看，且不能放输入框 ── */
+  function ask(title, desc, okText, onOk, needInput) {
+    var mask = el('div', 'mask');
+    var dlg  = el('div', 'dlg');
+    dlg.appendChild(el('h3', null, title));
+    if (desc) dlg.appendChild(el('p', null, desc));
+
+    var input;
+    if (needInput) {
+      var f = el('div', 'fld');
+      f.appendChild(el('label', null, needInput.label));
+      input = el('input');
+      input.placeholder = needInput.placeholder || '';
+      if (needInput.value) input.value = needInput.value;
+      f.appendChild(input);
+      dlg.appendChild(f);
+    }
+
+    var row = el('div', 'row');
+    row.style.justifyContent = 'flex-end';
+    var cancel = el('button', 'ghost', '取消');
+    var ok = el('button', needInput && needInput.danger ? 'danger' : '', okText);
+    cancel.onclick = function () { mask.remove(); };
+    ok.onclick = function () {
+      var v = input ? input.value.trim() : null;
+      if (needInput && needInput.required && !v) { toast('这一项必填'); return; }
+      ok.disabled = true; ok.textContent = '处理中…';
+      onOk(v, function (fail) {
+        if (fail) { ok.disabled = false; ok.textContent = okText; }
+        else mask.remove();
+      });
+    };
+    row.appendChild(cancel); row.appendChild(ok);
+    dlg.appendChild(row);
+    mask.appendChild(dlg);
+    mask.onclick = function (e) { if (e.target === mask) mask.remove(); };
+    document.body.appendChild(mask);
+    if (input) input.focus();
+  }
+
+  /* ══════════ 骨架 ══════════ */
+  function shell() {
+    var app = document.getElementById('app');
+    clear(app);
+
+    var top = el('div', 'top');
+    var h1 = el('h1', null, '管理后台');
+    top.appendChild(h1);
+    top.appendChild((function () {
+      var a = el('a', 'home', '← 回官网');
+      a.href = 'index.html';
+      return a;
+    })());
+    var who = el('div', 'who');
+    who.appendChild(document.createTextNode(S.me));
+    who.appendChild(el('span', 'badge ' + S.role, ROLE_CN[S.role] || '—'));
+    top.appendChild(who);
+    app.appendChild(top);
+
+    var tabs = el('div', 'tabs');
+    var t1 = el('button', 'tab on', '投稿审核');
+    t1.dataset.p = 'review';
+    var cnt = el('span', 'n', '0');
+    cnt.id = 'pcount'; cnt.style.display = 'none';
+    t1.appendChild(cnt);
+    tabs.appendChild(t1);
+
+    /* 权限管理只有站长看得到。管理组要设编辑组走这个标签的简化版，
+       所以两种角色都能看到，但里面能点的按钮不同。 */
+    var t2 = el('button', 'tab', S.owner ? '权限管理' : '编辑组');
+    t2.dataset.p = 'roles';
+    tabs.appendChild(t2);
+
+    var t3 = el('button', 'tab', '操作记录');
+    t3.dataset.p = 'audit';
+    tabs.appendChild(t3);
+
+    tabs.onclick = function (e) {
+      var b = e.target.closest('.tab');
+      if (!b) return;
+      [].forEach.call(tabs.children, function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      S.tab = b.dataset.p;
+      [].forEach.call(document.querySelectorAll('.pane'), function (p) {
+        p.classList.toggle('on', p.dataset.p === S.tab);
+      });
+      if (S.tab === 'review') loadPending();
+      if (S.tab === 'roles')  loadRoles();
+      if (S.tab === 'audit')  loadAudit();
+    };
+    app.appendChild(tabs);
+
+    ['review', 'roles', 'audit'].forEach(function (p) {
+      var pane = el('div', 'pane' + (p === 'review' ? ' on' : ''));
+      pane.dataset.p = p;
+      pane.id = 'pane-' + p;
+      app.appendChild(pane);
+    });
+  }
+
+  /* ══════════ 投稿审核 ══════════ */
+  function loadPending() {
+    var pane = document.getElementById('pane-review');
+    clear(pane);
+    pane.appendChild(el('div', 'loading', '加载中…'));
+
+    api('admin.php?action=pending').then(function (j) {
+      clear(pane);
+      if (!j.ok) { pane.appendChild(el('div', 'err', j.message || '加载失败')); return; }
+
+      var c = document.getElementById('pcount');
+      if (c) {
+        c.textContent = String(j.list.length);
+        c.style.display = j.list.length ? '' : 'none';
+      }
+
+      var n = el('div', 'note');
+      n.textContent = '待审 ' + j.count.pending + ' 篇，已通过 '
+        + j.count.approved + ' 篇，已退回 ' + j.count.rejected + ' 篇。'
+        + '通过后词条立刻出现在 Wiki 页面上，退回时写的原因投稿人能看到。';
+      pane.appendChild(n);
+
+      if (!j.list.length) {
+        pane.appendChild(el('div', 'empty', '没有待审的投稿。'));
+        return;
+      }
+      j.list.forEach(function (s) { pane.appendChild(subCard(s)); });
+    }).catch(function (e) {
+      clear(pane);
+      pane.appendChild(el('div', 'err', String(e.message || e)));
+    });
+  }
+
+  function subCard(s) {
+    var card = el('div', 'card');
+    card.appendChild(el('h3', null, s.title));
+
+    var m = el('div', 'meta');
+    m.appendChild(el('b', null, s.author));
+    m.appendChild(document.createTextNode(
+      ' · ' + (CAT[s.cat] || s.cat) + ' · ' + fmt(s.created) +
+      ' · 正文 ' + s.len + ' 字'));
+    card.appendChild(m);
+
+    card.appendChild(el('div', 'sum', s.summary));
+
+    var row = el('div', 'row');
+    var look = el('button', 'ghost sm', '看全文');
+    var pass = el('button', 'sm', '通过');
+    var back = el('button', 'danger sm', '退回');
+    row.appendChild(look); row.appendChild(pass); row.appendChild(back);
+    card.appendChild(row);
+
+    var holder = el('div');
+    card.appendChild(holder);
+
+    look.onclick = function () {
+      if (holder.firstChild) { clear(holder); look.textContent = '看全文'; return; }
+      look.disabled = true;
+      api('admin.php?action=submission&id=' + s.id).then(function (j) {
+        look.disabled = false;
+        if (!j.ok) { toast(j.message || '取不到内容'); return; }
+        look.textContent = '收起';
+        var b = el('div', 'body', j.sub.body);
+        holder.appendChild(b);
+        s._slug = j.sub.slug_guess;
+      });
+    };
+
+    pass.onclick = function () {
+      /* slug 要人工确认。中文标题生成不出可读的 slug，
+         默认给 sub-<id>，但让管理有机会改成有意义的短名。 */
+      var pre = s._slug || ('sub-' + s.id);
+      ask('通过这篇投稿？',
+          '通过后会立刻发布成正式词条。下面是它在网址里的短名，'
+          + '只能用小写字母、数字和连字符，改成有意义的更好，比如 how-to-claim-land。',
+          '通过并发布',
+          function (slug, done) {
+            api('admin.php', { body: { action: 'approve', id: s.id, slug: slug } })
+              .then(function (j) {
+                if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+                toast(j.message); done(); loadPending();
+              }).catch(function (e) { toast(String(e.message || e)); done(true); });
+          },
+          { label: '网址短名（slug）', value: pre, required: true });
+    };
+
+    back.onclick = function () {
+      ask('退回这篇投稿？',
+          '写一句原因，投稿人在「我的投稿」里能看到。'
+          + '说清楚哪里要改，他改完可以重投。',
+          '退回',
+          function (note, done) {
+            api('admin.php', { body: { action: 'reject', id: s.id, note: note } })
+              .then(function (j) {
+                if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+                toast(j.message); done(); loadPending();
+              }).catch(function (e) { toast(String(e.message || e)); done(true); });
+          },
+          { label: '退回原因（投稿人可见）', required: true, danger: true,
+            placeholder: '例如：和现有词条「领地保护」重复了' });
+    };
+
+    return card;
+  }
+
+  /* ══════════ 权限管理 ══════════ */
+  function loadRoles() {
+    var pane = document.getElementById('pane-roles');
+    clear(pane);
+    pane.appendChild(el('div', 'loading', '加载中…'));
+
+    api('admin.php?action=roles').then(function (j) {
+      clear(pane);
+      if (!j.ok) { pane.appendChild(el('div', 'err', j.message || '加载失败')); return; }
+
+      var n = el('div', 'note');
+      n.textContent = S.owner
+        ? '站长（' + j.owner + '）的权限写在 config.php 里，不在这张表中，'
+          + '所以谁也没法在这里把你降权。管理组能审投稿、能设编辑组；'
+          + '只有你能任命管理组。'
+        : '你能设定和撤销编辑组。任命管理组是站长专属 —— '
+          + '这样一个管理号被盗也不会连锁提权。';
+      pane.appendChild(n);
+
+      pane.appendChild(addBox());
+
+      var card = el('div', 'card');
+      card.appendChild(el('h3', null, '现有权限组'));
+      if (!j.list.length) {
+        card.appendChild(el('div', 'empty', '还没有设过任何人。'));
+      } else {
+        card.appendChild(roleTable(j.list, j.can_set_admin));
+      }
+      pane.appendChild(card);
+
+      if (j.cfg_editors && j.cfg_editors.length) {
+        var c2 = el('div', 'card');
+        c2.appendChild(el('h3', null, 'config.php 兜底名单'));
+        var p = el('div', 'sum');
+        p.textContent = '这些人写在配置文件里，数据库连不上时仍能编辑词条。'
+          + '要改得动文件，后台改不了：' + j.cfg_editors.join('、');
+        c2.appendChild(p);
+        pane.appendChild(c2);
+      }
+    }).catch(function (e) {
+      clear(pane);
+      pane.appendChild(el('div', 'err', String(e.message || e)));
+    });
+  }
+
+  function roleTable(list, canAdmin) {
+    var t = el('table');
+    var thead = el('thead');
+    var tr = el('tr');
+    ['游戏 ID', '权限组', '授予人', '时间', ''].forEach(function (h) {
+      tr.appendChild(el('th', null, h));
+    });
+    thead.appendChild(tr); t.appendChild(thead);
+
+    var tb = el('tbody');
+    list.forEach(function (r) {
+      var row = el('tr');
+      row.appendChild(el('td', null, r.realname));
+      var td2 = el('td');
+      td2.appendChild(el('span', 'badge ' + r.role, ROLE_CN[r.role] || r.role));
+      row.appendChild(td2);
+      row.appendChild(el('td', null, r.granted_by));
+      row.appendChild(el('td', null, fmt(r.granted_at)));
+
+      var act = el('td', 'act');
+      /* 管理组这一行，只有站长能动 */
+      var locked = (r.role === 'admin' && !canAdmin);
+      if (locked) {
+        act.appendChild(el('span', null, '—'));
+      } else {
+        var rm = el('button', 'danger sm', '撤销');
+        rm.onclick = function () {
+          ask('撤销 ' + r.realname + ' 的' + (ROLE_CN[r.role] || r.role) + '？',
+              '撤销后他下次刷新页面就没有对应权限了。词条历史里的署名会保留。',
+              '撤销',
+              function (_, done) {
+                api('admin.php', { body: { action: 'remove_role', username: r.username } })
+                  .then(function (j) {
+                    if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+                    toast(j.message); done(); loadRoles();
+                  }).catch(function (e) { toast(String(e.message || e)); done(true); });
+              });
+        };
+        act.appendChild(rm);
+      }
+      row.appendChild(act);
+      tb.appendChild(row);
+    });
+    t.appendChild(tb);
+    return t;
+  }
+
+  /* ── 加人 ── */
+  function addBox() {
+    var card = el('div', 'card');
+    card.appendChild(el('h3', null, '添加'));
+    var hint = el('div', 'sum');
+    hint.textContent = '输入游戏 ID 搜一下，确认是本人再授权。'
+      + '搜不到说明这个 ID 没在服里注册过，别硬填。';
+    card.appendChild(hint);
+
+    var row = el('div', 'row');
+    var inp = el('input');
+    inp.placeholder = '游戏 ID，至少 2 个字';
+    inp.className = 'grow';
+    var go = el('button', 'ghost', '搜索');
+    row.appendChild(inp); row.appendChild(go);
+    card.appendChild(row);
+
+    var res = el('div');
+    res.style.marginTop = '12px';
+    card.appendChild(res);
+
+    function search() {
+      var q = inp.value.trim();
+      if (q.length < 2) { toast('至少输入 2 个字'); return; }
+      go.disabled = true; go.textContent = '搜索中…';
+      api('admin.php?action=find_user&q=' + encodeURIComponent(q))
+        .then(function (j) {
+          go.disabled = false; go.textContent = '搜索';
+          clear(res);
+          if (!j.ok) { res.appendChild(el('div', 'err', j.message || '搜索失败')); return; }
+          if (!j.list.length) {
+            res.appendChild(el('div', 'empty', '没找到这个 ID。'));
+            return;
+          }
+          j.list.forEach(function (u) { res.appendChild(hitRow(u)); });
+        }).catch(function (e) {
+          go.disabled = false; go.textContent = '搜索';
+          clear(res);
+          res.appendChild(el('div', 'err', String(e.message || e)));
+        });
+    }
+    go.onclick = search;
+    inp.onkeydown = function (e) { if (e.key === 'Enter') search(); };
+    return card;
+  }
+
+  function hitRow(u) {
+    var row = el('div', 'row');
+    row.style.padding = '8px 0';
+    row.style.borderTop = '1px solid var(--line)';
+
+    var name = el('div', 'grow');
+    name.appendChild(document.createTextNode(u.realname));
+    if (u.is_owner) {
+      name.appendChild(el('span', 'badge owner', '站长'));
+    } else if (u.role) {
+      name.appendChild(el('span', 'badge ' + u.role, ROLE_CN[u.role] || u.role));
+    }
+    row.appendChild(name);
+
+    if (u.is_owner) {
+      row.appendChild(el('span', null, '权限在配置文件里'));
+      return row;
+    }
+
+    function setRole(role) {
+      var cn = ROLE_CN[role];
+      ask('把 ' + u.realname + ' 设为' + cn + '？',
+          role === 'admin'
+            ? '管理组能审核投稿、能设定编辑组，但改不了别的管理组。'
+              + '备注可以写授权原因，方便日后回顾。'
+            : '编辑组能直接修改 Wiki 词条，不用走投稿。备注可选。',
+          '设为' + cn,
+          function (note, done) {
+            api('admin.php', {
+              body: { action: 'set_role', username: u.username, role: role, note: note || '' }
+            }).then(function (j) {
+              if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+              toast(j.message); done(); loadRoles();
+            }).catch(function (e) { toast(String(e.message || e)); done(true); });
+          },
+          { label: '备注（可留空）', placeholder: '例如：负责建筑分类' });
+    }
+
+    if (u.role !== 'editor') {
+      var b1 = el('button', 'ghost sm', '设为编辑组');
+      b1.onclick = function () { setRole('editor'); };
+      row.appendChild(b1);
+    }
+    /* 管理组按钮只给站长 */
+    if (S.owner && u.role !== 'admin') {
+      var b2 = el('button', 'sm', '设为管理组');
+      b2.onclick = function () { setRole('admin'); };
+      row.appendChild(b2);
+    }
+    return row;
+  }
+
+  /* ══════════ 操作记录 ══════════ */
+  var ACT_CN = {
+    approve: '通过投稿', reject: '退回投稿',
+    set_role: '设权限', remove_role: '撤权限'
+  };
+
+  function loadAudit() {
+    var pane = document.getElementById('pane-audit');
+    clear(pane);
+    pane.appendChild(el('div', 'loading', '加载中…'));
+
+    api('admin.php?action=audit').then(function (j) {
+      clear(pane);
+      if (!j.ok) { pane.appendChild(el('div', 'err', j.message || '加载失败')); return; }
+
+      var n = el('div', 'note');
+      n.textContent = '最近 100 条操作。谁审了什么、谁给谁提了权，都记在这里，'
+        + '出现分歧时可以回查。';
+      pane.appendChild(n);
+
+      if (!j.list.length) {
+        pane.appendChild(el('div', 'empty', '还没有操作记录。'));
+        return;
+      }
+
+      var card = el('div', 'card');
+      var t = el('table');
+      var tr = el('tr');
+      ['时间', '操作人', '动作', '对象', '详情'].forEach(function (h) {
+        tr.appendChild(el('th', null, h));
+      });
+      var thead = el('thead'); thead.appendChild(tr); t.appendChild(thead);
+      var tb = el('tbody');
+      j.list.forEach(function (r) {
+        var row = el('tr');
+        row.appendChild(el('td', null, fmt(r.at)));
+        row.appendChild(el('td', null, r.actor));
+        row.appendChild(el('td', null, ACT_CN[r.action] || r.action));
+        row.appendChild(el('td', null, r.target));
+        row.appendChild(el('td', null, r.detail || '—'));
+        tb.appendChild(row);
+      });
+      t.appendChild(tb);
+      card.appendChild(t);
+      pane.appendChild(card);
+    }).catch(function (e) {
+      clear(pane);
+      pane.appendChild(el('div', 'err', String(e.message || e)));
+    });
+  }
+
+  /* ══════════ 入口 ══════════ */
+  var app = document.getElementById('app');
+
+  api('me.php').then(function (j) {
+    if (!j || !j.ok) throw new Error('接口异常');
+    S.csrf = j.csrf || '';
+
+    if (!j.user) {
+      clear(app);
+      var d = el('div', 'card');
+      d.appendChild(el('h3', null, '请先登录'));
+      var p = el('div', 'sum');
+      p.textContent = '管理后台需要登录。回官网点右上角登录，再回来。';
+      d.appendChild(p);
+      var a = el('a', 'home', '← 回官网登录');
+      a.href = 'index.html';
+      d.appendChild(a);
+      app.appendChild(d);
+      return;
+    }
+
+    S.me    = j.user.name;
+    S.role  = j.user.role || '';
+    S.owner = !!(j.feat && j.feat.owner);
+
+    if (!(j.feat && j.feat.admin)) {
+      clear(app);
+      var e2 = el('div', 'card');
+      e2.appendChild(el('h3', null, '你没有后台权限'));
+      var p2 = el('div', 'sum');
+      p2.textContent = '当前登录的是 ' + S.me + '。管理后台只有管理组能进，'
+        + '需要权限请找站长。';
+      e2.appendChild(p2);
+      var a2 = el('a', 'home', '← 回官网');
+      a2.href = 'index.html';
+      e2.appendChild(a2);
+      app.appendChild(e2);
+      return;
+    }
+
+    shell();
+    loadPending();
+  }).catch(function (e) {
+    clear(app);
+    var d = el('div', 'err');
+    d.textContent = '连不上后台接口：' + String(e.message || e)
+      + '。确认用 https 打开，且 api/ 目录已上传。';
+    app.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>

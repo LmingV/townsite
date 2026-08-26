@@ -123,4 +123,48 @@ CREATE TABLE IF NOT EXISTS `wiki_submissions` (
 --   退回并写明原因（投稿人能在「我的投稿」里看到）：
 --     UPDATE wiki_submissions SET status='rejected', note='内容与现有词条重复',
 --       updated=NOW() WHERE id=1;
+--
+--   ※ 上面这些是后台页面出现之前的手动办法，现在可以直接用
+--     https://你的域名/admin.html 点按钮审核，SQL 留着备查。
 -- ============================================================
+
+
+-- ============================================================
+-- 网站权限组
+-- ------------------------------------------------------------
+-- 一个人只有一条记录，role 取最高的那个：
+--   editor  能直接编辑 Wiki 词条
+--   admin   能审核投稿 + 能设定/撤销编辑组（管理组自己动不了管理组）
+--
+-- 站长（config.php 的 site_owner，即 IN7_）不在这张表里，
+-- 硬写在配置文件中。这样即使表被清空或误删，站长仍能进后台，
+-- 也没人能通过改这张表把站长降权。
+--
+-- config.php 里的 wiki_editors 仍然有效，与本表取并集，
+-- 所以老配置不会因为建了这张表而失效。
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `site_roles` (
+  `username`   VARCHAR(32)  NOT NULL,           -- 小写游戏 ID，和 authme.username 对齐
+  `realname`   VARCHAR(32)  NOT NULL DEFAULT '',-- 保留大小写，仅供后台显示
+  `role`       ENUM('editor','admin') NOT NULL,
+  `granted_by` VARCHAR(32)  NOT NULL,           -- 谁授的，留痕
+  `granted_at` DATETIME     NOT NULL,
+  `note`       VARCHAR(255) NOT NULL DEFAULT '',-- 备注，可写授权原因
+  PRIMARY KEY (`username`),
+  KEY `idx_role` (`role`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 审核与授权动作留痕。谁在什么时候通过/退回了哪篇投稿、给谁提了权。
+-- 出现争议时能查，也能看出某个管理是不是在乱点。
+CREATE TABLE IF NOT EXISTS `audit_log` (
+  `id`      INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `actor`   VARCHAR(32)  NOT NULL,              -- 操作人
+  `action`  VARCHAR(32)  NOT NULL,              -- approve / reject / set_role / remove_role
+  `target`  VARCHAR(64)  NOT NULL,              -- 投稿 id 或被改权限的用户名
+  `detail`  VARCHAR(255) NOT NULL DEFAULT '',
+  `at`      DATETIME     NOT NULL,
+  `ip`      VARCHAR(45)  NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_at`    (`at`),
+  KEY `idx_actor` (`actor`, `at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

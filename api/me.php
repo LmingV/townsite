@@ -17,15 +17,23 @@ require_once __DIR__ . '/lib/authme.php';
 Core::requireMethod('GET');
 Core::session();
 
-$u    = Core::user();
+$u = Core::user();
+
+/* 角色一并返回，前端据此决定显不显示「管理后台」入口。
+   这只是界面开关：前端能改，后端不能 —— 真正的拦截在每个接口里各自做。 */
+$role = $u ? Core::role($u) : '';
+
 $resp = [
     'ok'    => true,
-    'user'  => $u ? ['name' => $u['name']] : null,
+    'user'  => $u ? ['name' => $u['name'], 'role' => $role] : null,
     'csrf'  => Core::csrfToken(),
     'feat'  => [
         'profile'     => (bool)Core::cfg('features.profile', true),
         'wiki_submit' => (bool)Core::cfg('features.wiki_submit', true),
         'game_data'   => (bool)Core::cfg('features.game_data', false),
+        'wiki_edit'   => $u ? Core::isEditor($u) : false,
+        'admin'       => $u ? Core::isAdmin($u)  : false,
+        'owner'       => $u ? Core::isOwner($u)  : false,
     ],
 ];
 

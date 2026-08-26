@@ -151,20 +151,95 @@ class Core
         return $u;
     }
 
-    /* ── 是否在 Wiki 编辑组里 ──
-       比较用小写，避免大小写差异导致「明明加了却没权限」。
-       中文 ID 用 mb 无关的直接比较即可（strtolower 不动多字节字符）。 */
-    public static function isEditor($u = null)
+    /* ============================================================
+       权限组
+       ------------------------------------------------------------
+       三级：owner > admin > editor > 普通用户
+
+         owner   站长。硬写在 config.php 的 site_owner 里，不入库。
+                 这样表被清空或误删也进得去后台，也没人能靠改表把站长降权。
+         admin   管理组。能审核投稿、能设定/撤销编辑组。
+                 按设计管理组之间互不干涉 —— 只有 owner 能任命管理组，
+                 防止一个管理号被盗后连锁提权。
+         editor  编辑组。能直接改 Wiki 词条，不走投稿。
+
+       身份存在 site_roles 表里，另外 config.php 的 wiki_editors
+       仍然生效并与表取并集，所以建表之前的老配置不会失效。
+
+       比较统一用小写。strtolower 不动多字节字符，中文 ID 也安全。
+       ============================================================ */
+
+    private static $roleCache = [];
+
+    /* 规范化用户名：取登录态里的小写名，没有就退回显示名 */
+    private static function uname($u = null)
     {
         $u = $u ?: self::user();
-        if (!$u) return false;
-        $list = self::cfg('wiki_editors', []);
-        if (!is_array($list) || !$list) return false;
-        $me = strtolower(trim((string)($u['lname'] ?? $u['name'] ?? '')));
-        foreach ($list as $e) {
-            if (strtolower(trim((string)$e)) === $me) return true;
+        if (!$u) return '';
+        return strtolower(trim((string)($u['lname'] ?? $u['name'] ?? '')));
+    }
+
+    public static function isOwner($u = null)
+    {
+        $me = self::uname($u);
+        if ($me === '') return false;
+        $owner = strtolower(trim((string)self::cfg('site_owner', '')));
+        return $owner !== '' && $owner === $me;
+    }
+
+    /* 查这个人的角色，返回 'owner' | 'admin' | 'editor' | ''。
+       一次请求内缓存，避免同一次请求里反复查库。 */
+    public static function role($u = null)
+    {
+        $me = self::uname($u);
+        if ($me === '') return '';
+        if (isset(self::$roleCache[$me])) return self::$roleCache[$me];
+
+        $r = '';
+
+        if (self::isOwner($u)) {
+            $r = 'owner';
+        } else {
+            /* config 里的 wiki_editors 是额外白名单，与表取并集 */
+            $list = self::cfg('wiki_editors', []);
+            if (is_array($list)) {
+                foreach ($list as $e) {
+                    if (strtolower(trim((string)$e)) === $me) { $r = 'editor'; break; }
+                }
+            }
+
+            /* 表里的角色优先级更高（admin 能盖过 config 的 editor）。
+               查表失败不应该让整站 403 —— 表还没建的时候，
+               config 里的 editor 判定仍然要能用，所以异常只记日志。 */
+            try {
+                $db = self::db('site');
+                if ($db) {
+                    $st = $db->prepare('SELECT role FROM site_roles WHERE username = ? LIMIT 1');
+                    $st->execute([$me]);
+                    $row = $st->fetch();
+                    if ($row && $row['role'] === 'admin')  $r = 'admin';
+                    elseif ($row && $row['role'] === 'editor' && $r === '') $r = 'editor';
+                }
+            } catch (\PDOException $e) {
+                error_log('[town-auth] role lookup failed: ' . $e->getMessage());
+            }
         }
-        return false;
+
+        return self::$roleCache[$me] = $r;
+    }
+
+    /* admin 和 owner 都算管理组 */
+    public static function isAdmin($u = null)
+    {
+        $r = self::role($u);
+        return $r === 'admin' || $r === 'owner';
+    }
+
+    /* 管理组和站长天然拥有编辑权，不用再单独授 editor */
+    public static function isEditor($u = null)
+    {
+        $r = self::role($u);
+        return $r === 'editor' || $r === 'admin' || $r === 'owner';
     }
 
     public static function requireEditor()
@@ -175,6 +250,50 @@ class Core
                 '你不在 Wiki 编辑组里。想参与编辑请联系管理组，或用「投稿」提交新词条。');
         }
         return $u;
+    }
+
+    public static function requireAdmin()
+    {
+        $u = self::requireUser();
+        if (!self::isAdmin($u)) {
+            self::fail(403, 'not_admin', '这个页面只有管理组能进。');
+        }
+        return $u;
+    }
+
+    public static function requireOwner()
+    {
+        $u = self::requireUser();
+        if (!self::isOwner($u)) {
+            self::fail(403, 'not_owner', '只有站长能改权限组。');
+        }
+        return $u;
+    }
+
+    /* ── 操作留痕 ──
+       审核和授权都要记。写失败不该让主流程回滚 ——
+       日志没记上是小事，投稿审不了是大事。 */
+    public static function audit($action, $target, $detail = '')
+    {
+        try {
+            $db = self::db('site');
+            if (!$db) return;
+            /* action 在部分 MySQL 版本里是保留字，加反引号保险 */
+            $st = $db->prepare(
+                'INSERT INTO `audit_log` (`actor`, `action`, `target`, `detail`, `at`, `ip`)
+                 VALUES (?, ?, ?, ?, NOW(), ?)');
+            /* 各列都按建表时的长度截一刀。严格模式下超长会报错，
+               为了记日志把主流程搞挂了不值得。 */
+            $st->execute([
+                self::scut(self::uname(), 32),
+                self::scut($action, 32),
+                self::scut($target, 64),
+                self::scut($detail, 255),
+                self::ip(),
+            ]);
+        } catch (\PDOException $e) {
+            error_log('[town-auth] audit write failed: ' . $e->getMessage());
+        }
     }
 
     /* ── CSRF ── */
@@ -195,6 +314,30 @@ class Core
         if (!$have || !$sent || !hash_equals($have, (string)$sent)) {
             self::fail(403, 'bad_csrf', '请求校验失败，请刷新页面重试');
         }
+    }
+
+    /* ── 字符串长度（按字符数，不是字节数） ──
+       中文一个字在 UTF-8 里占 3 字节，用 strlen 判断「标题至少 2 个字」
+       会把「领地」算成 6 而通过，把限制彻底判错。
+
+       mbstring 扩展在多数环境都有，但不是必装。缺了就退回
+       用正则数一遍 UTF-8 字符 —— 慢一点，但不会因为环境差异
+       让整个接口挂掉。 */
+    public static function slen($s)
+    {
+        $s = (string)$s;
+        if (function_exists('mb_strlen')) return mb_strlen($s, 'UTF-8');
+        $n = preg_match_all('/./us', $s);
+        return $n === false ? strlen($s) : $n;
+    }
+
+    /* 按字符截断，同样带 mbstring 缺失时的退路 */
+    public static function scut($s, $len)
+    {
+        $s = (string)$s;
+        if (function_exists('mb_substr')) return mb_substr($s, 0, $len, 'UTF-8');
+        if (preg_match_all('/./us', $s, $m) === false) return substr($s, 0, $len);
+        return implode('', array_slice($m[0], 0, $len));
     }
 
     /* ── 客户端 IP ── */
