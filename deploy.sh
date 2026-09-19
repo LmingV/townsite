@@ -2,8 +2,8 @@
 # ============================================================
 #  服务器端部署脚本
 #  ------------------------------------------------------------
-#  放在服务器上，每次要上线新改动就执行它：
-#      cd /www/wwwroot/你的域名 && ./deploy.sh
+#  Git 部署：bash deploy.sh
+#  ZIP/SFTP 上传：bash deploy.sh --no-pull
 #
 #  它做四件事：拉代码 → 检查配置 → 查语法 → 修权限。
 #  任何一步失败就停下，不会把坏代码留在线上。
@@ -12,6 +12,14 @@
 # ============================================================
 
 set -euo pipefail          # 出错即停，未定义变量报错，管道错误不吞
+
+PULL_CODE=1
+if [ "${1:-}" = "--no-pull" ]; then
+  PULL_CODE=0
+elif [ "$#" -gt 0 ]; then
+  echo "用法：bash deploy.sh [--no-pull]"
+  exit 2
+fi
 
 cd "$(dirname "$0")"
 ROOT="$(pwd)"
@@ -44,6 +52,23 @@ if [ -z "$PHP" ]; then
 fi
 c_g "[OK] PHP: $("$PHP" -r 'echo PHP_VERSION;') ($PHP)"
 
+if ! "$PHP" -r 'exit(version_compare(PHP_VERSION, "8.1.0", ">=") ? 0 : 1);'; then
+  c_r "[X] PHP 版本过低，需要 PHP 8.1 或更高"
+  exit 1
+fi
+
+MISSING_EXT=""
+for ext in pdo_mysql mbstring openssl; do
+  if ! "$PHP" -r "exit(extension_loaded('$ext') ? 0 : 1);"; then
+    MISSING_EXT="$MISSING_EXT $ext"
+  fi
+done
+if [ -n "$MISSING_EXT" ]; then
+  c_r "[X] 缺少 PHP 扩展：$MISSING_EXT"
+  exit 1
+fi
+c_g "[OK] PHP 扩展：pdo_mysql mbstring openssl"
+
 # ── 2. 配置文件必须就位 ──
 # 这一步放在拉代码之前：config.php 不在版本库里，
 # 万一没建，拉完代码网站会直接 500。
@@ -68,7 +93,8 @@ exit($bad ? 1 : 0);
 ' 2>/dev/null; then
   c_g "[OK] 数据库密码已填"
 else
-  c_y "[!] config.php 里有数据库密码是空的，相关功能会连不上"
+  c_r "[X] config.php 里有已启用数据库的密码为空"
+  exit 1
 fi
 
 # 站长没配的话谁也进不去管理后台，包括你自己。
@@ -79,33 +105,49 @@ exit(trim((string)($c["site_owner"] ?? "")) === "" ? 1 : 0);
 ' 2>/dev/null; then
   c_g "[OK] 站长已配置"
 else
-  c_y "[!] config.php 里没有 site_owner，管理后台谁也进不去"
-  c_y "    在 wiki_editors 那段前面加一行：  'site_owner' => 'IN7_',"
-fi
-
-# ── 3. 拉代码 ──
-echo
-echo "拉取最新代码…"
-if [ ! -d .git ]; then
-  c_r "[X] 这不是 git 仓库。首次部署请先 git clone"
+  c_r "[X] config.php 里没有 site_owner，管理后台谁也进不去"
   exit 1
 fi
 
-BEFORE="$(git rev-parse HEAD)"
-git fetch --quiet origin
-BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-
-# 用 reset --hard 而不是 pull：服务器上不该有本地修改，
-# 有的话也应该丢掉，避免合并冲突卡住部署。
-# config.php 不在版本库里，不会被这一步影响。
-git reset --hard "origin/$BRANCH" --quiet
-AFTER="$(git rev-parse HEAD)"
-
-if [ "$BEFORE" = "$AFTER" ]; then
-  echo "  已是最新（$(echo "$AFTER" | cut -c1-7)）"
+if "$PHP" -r '$c=include "api/config.php"; exit(($c["security"]["require_https"] ?? true) ? 0 : 1);'; then
+  c_g "[OK] 已强制 HTTPS"
 else
-  c_g "  更新：$(echo "$BEFORE" | cut -c1-7) → $(echo "$AFTER" | cut -c1-7)"
-  git log --oneline "$BEFORE..$AFTER" 2>/dev/null | sed 's/^/    /' | head -10
+  c_y "[!] require_https=false，只能用于证书配置前的临时调试"
+fi
+
+# ── 3. 拉代码 ──
+if [ "$PULL_CODE" -eq 1 ]; then
+  echo
+  echo "拉取最新代码…"
+  if [ ! -d .git ]; then
+    c_r "[X] 这不是 Git 仓库；ZIP/SFTP 上传请运行 bash deploy.sh --no-pull"
+    exit 1
+  fi
+
+  BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+  if [ "$BRANCH" = "HEAD" ]; then
+    c_r "[X] 当前处于 detached HEAD，请先切换到部署分支"
+    exit 1
+  fi
+  if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    c_r "[X] 服务器上有未提交的源码改动，已停止更新以免覆盖"
+    git status --short --untracked-files=no
+    exit 1
+  fi
+
+  BEFORE="$(git rev-parse HEAD)"
+  git fetch --quiet origin
+  git merge --ff-only "origin/$BRANCH" --quiet
+  AFTER="$(git rev-parse HEAD)"
+
+  if [ "$BEFORE" = "$AFTER" ]; then
+    echo "  已是最新（$(echo "$AFTER" | cut -c1-7)）"
+  else
+    c_g "  更新：$(echo "$BEFORE" | cut -c1-7) → $(echo "$AFTER" | cut -c1-7)"
+    git log --oneline "$BEFORE..$AFTER" 2>/dev/null | sed 's/^/    /' | head -10
+  fi
+else
+  c_y "[!] 已跳过 Git 拉取，检查当前上传的文件"
 fi
 
 # ── 4. PHP 语法检查 ──
@@ -123,8 +165,6 @@ done < <(find api -name '*.php' -type f)
 
 if [ "$BAD" -gt 0 ]; then
   c_r "[X] $BAD 个文件有语法错误"
-  c_y "    代码已经拉下来了但有问题。回退上一个版本："
-  c_y "        git reset --hard $BEFORE"
   exit 1
 fi
 c_g "[OK] PHP 语法全部正常"
@@ -149,7 +189,7 @@ echo
 MISS="$("$PHP" -r '
 $c = include "api/config.php";
 $s = $c["site"] ?? null;
-if (!$s || !($s["enabled"] ?? false)) { echo ""; exit; }
+if (!$s || !($s["enabled"] ?? false)) { echo "__DISABLED__"; exit; }
 try {
     $pdo = new PDO(
         sprintf("mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4",
@@ -157,7 +197,17 @@ try {
         $s["user"], $s["pass"],
         [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
     $miss = [];
-    foreach (["site_roles", "audit_log"] as $t) {
+    $tables = [
+        "login_fails", "wiki_pages", "wiki_revisions", "wiki_submissions",
+        "site_roles", "audit_log", "tickets"
+    ];
+    if (($c["features"]["game_data"] ?? false)) {
+        $tables = array_merge($tables, [
+            "player_stats", "player_badges", "badge_definitions",
+            "player_emails", "email_verify"
+        ]);
+    }
+    foreach ($tables as $t) {
         $q = $pdo->prepare("SHOW TABLES LIKE ?");
         $q->execute([$t]);
         if (!$q->fetch()) $miss[] = $t;
@@ -166,30 +216,38 @@ try {
 } catch (Exception $e) { echo "__ERR__"; }
 ' 2>/dev/null || echo "__ERR__")"
 
-if [ "$MISS" = "__ERR__" ]; then
-  c_y "[!] 连不上站点库，跳过建表检查"
+if [ "$MISS" = "__DISABLED__" ]; then
+  c_y "[!] 站点数据库未启用，Wiki 投稿、工单和后台不可用"
+elif [ "$MISS" = "__ERR__" ]; then
+  c_r "[X] 连不上站点数据库"
+  exit 1
 elif [ -n "$MISS" ]; then
-  c_y "[!] 缺少数据表：$MISS"
-  c_y "    管理后台会报错。导一下（可重复执行，不会动已有数据）："
+  c_r "[X] 缺少数据表：$MISS"
+  c_y "    导入完整结构（可重复执行，不会动已有数据）："
   c_y "        mysql -u townsite -p townsite < api/schema.sql"
+  exit 1
 else
   c_g "[OK] 数据表齐全"
 fi
 
 # ── 6. 权限 ──
-# 宝塔的 nginx 跑在 www 用户下。属主不对会 403。
+# 宝塔的 PHP-FPM 通常跑在 www 用户下。源码保留部署用户为属主，
+# 只把组设为 www，避免 Web 进程拥有修改源码的权限。
 echo
 if id www >/dev/null 2>&1; then
-  chown -R www:www "$ROOT" 2>/dev/null || c_y "[!] 改属主失败，可能需要 sudo"
-  c_g "[OK] 属主设为 www:www"
+  chgrp -R www "$ROOT" 2>/dev/null || c_y "[!] 修改文件组失败，可能需要 sudo"
+  find "$ROOT" -type d -not -path '*/.git/*' -exec chmod 750 {} \; 2>/dev/null || true
+  find "$ROOT" -type f -not -path '*/.git/*' -exec chmod 640 {} \; 2>/dev/null || true
+  chmod 640 api/config.php 2>/dev/null || true
+  c_g "[OK] 文件组设为 www，Web 进程只有读取权限"
+else
+  find "$ROOT" -type d -not -path '*/.git/*' -exec chmod 755 {} \; 2>/dev/null || true
+  find "$ROOT" -type f -not -path '*/.git/*' -exec chmod 644 {} \; 2>/dev/null || true
+  chmod 600 api/config.php 2>/dev/null || true
+  c_y "[!] 系统没有 www 用户，请确认 PHP-FPM 用户能读取站点文件"
 fi
-# 目录 755、文件 644：够 nginx 读，不给多余写权限
-find "$ROOT" -type d -not -path '*/.git/*' -exec chmod 755 {} \; 2>/dev/null || true
-find "$ROOT" -type f -not -path '*/.git/*' -exec chmod 644 {} \; 2>/dev/null || true
 chmod +x deploy.sh 2>/dev/null || true
-# 配置文件收紧：只有属主能读，别人连读都不行
-chmod 600 api/config.php 2>/dev/null || true
-c_g "[OK] 权限已设置（config.php 已收紧为 600）"
+if [ -d .git ]; then chmod -R go-rwx .git 2>/dev/null || true; fi
 
 echo
 c_g "=========================================="

@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>工单 - 永恒流光</title>
+<style>
+:root{
+  --cream:#FFFCF5; --cream2:#FFF9EC; --paper:#FFFEF9;
+  --ink:#281E12; --ink2:#5A4A38; --dim:#8C7B68;
+  --sun:#F4A521; --orange:#EF7D3C; --red:#D9534F;
+  --sky:#4FACDD; --line:#E8DCC8; --line2:#F0E6D8;
+  --rl:18px; --sh:0 2px 8px rgba(40,30,18,.06);
+  --sh-sm:0 1px 4px rgba(40,30,18,.04);}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--cream);color:var(--ink);min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse at 15% 8%,rgba(244,165,33,.055) 0%,transparent 46%),
+    radial-gradient(ellipse at 85% 92%,rgba(239,125,60,.042) 0%,transparent 46%);}
+.wrap{max-width:920px;margin:0 auto;padding:28px 20px 80px;}
+
+/* ── 顶部 ── */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px;}
+.top h1{font-size:22px;font-weight:800;letter-spacing:.02em;}
+.top .who{margin-left:auto;font-size:13px;color:var(--ink2);}
+.home{font-size:13px;color:var(--ink2);text-decoration:none;
+  border-bottom:1px dashed var(--line2);}
+.home:hover{color:var(--orange);}
+
+/* ── 标签页 ── */
+.tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+.tab{padding:10px 18px;font-size:14px;font-weight:600;color:var(--ink2);
+  background:none;border:none;border-bottom:2px solid transparent;
+  cursor:pointer;font-family:inherit;}
+.tab:hover{color:var(--ink);}
+.tab.on{color:var(--orange);border-bottom-color:var(--orange);}
+.pane{display:none;}
+.pane.on{display:block;}
+
+/* ── 卡片 ── */
+.card{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);
+  padding:18px 20px;margin-bottom:14px;box-shadow:var(--sh-sm);}
+.card h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+.meta{font-size:12px;color:var(--dim);margin-bottom:10px;}
+.meta b{color:var(--ink2);font-weight:600;}
+.txt{font-size:13px;color:var(--ink2);line-height:1.7;white-space:pre-wrap;
+  word-break:break-word;margin-bottom:12px;}
+.reply-box{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;margin-top:12px;}
+.reply-box .lbl{font-size:12px;font-weight:600;color:var(--dim);margin-bottom:6px;}
+.reply-box .txt{margin-bottom:0;}
+.status{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;
+  font-weight:700;vertical-align:middle;}
+.status.open{background:rgba(239,125,60,.15);color:#b85a1a;}
+.status.replied{background:rgba(79,172,221,.15);color:#1c5f85;}
+.status.closed{background:rgba(140,123,104,.15);color:#5a4a38;}
+
+/* ── 表单 ── */
+.form{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);
+  padding:20px;margin-bottom:20px;box-shadow:var(--sh-sm);}
+.fld{margin-bottom:14px;}
+label{display:block;font-size:12px;font-weight:600;color:var(--ink2);
+  margin-bottom:5px;}
+input,select,textarea{font-family:inherit;font-size:13px;color:var(--ink);
+  background:var(--cream2);border:1.5px solid var(--line2);border-radius:10px;
+  padding:9px 12px;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--sun);}
+textarea{resize:vertical;min-height:120px;}
+button{font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;
+  border:none;border-radius:10px;padding:9px 18px;color:#fff;
+  background:linear-gradient(135deg,var(--sun),var(--orange));
+  box-shadow:0 4px 12px rgba(239,125,60,.28);}
+button:hover{filter:brightness(1.06);}
+button:disabled{opacity:.5;cursor:not-allowed;filter:none;}
+
+/* ── 提示 ── */
+.empty{text-align:center;padding:52px 20px;color:var(--dim);font-size:14px;}
+.loading{text-align:center;padding:80px 20px;color:var(--dim);font-size:14px;}
+.err{background:rgba(217,83,79,.08);border:1px solid rgba(217,83,79,.25);
+  color:#a33;border-radius:12px;padding:12px 16px;font-size:13px;
+  line-height:1.7;margin-bottom:14px;}
+.note{background:rgba(79,172,221,.07);border:1px solid rgba(79,172,221,.2);
+  border-radius:12px;padding:12px 16px;font-size:12.5px;line-height:1.75;
+  color:var(--ink2);margin-bottom:16px;}
+.login-required{text-align:center;padding:52px 24px;}
+.login-required h2{font-size:20px;margin-bottom:10px;}
+.login-required p{font-size:13px;color:var(--ink2);line-height:1.75;margin-bottom:18px;}
+.login-link{display:inline-block;color:#fff;text-decoration:none;border-radius:10px;
+  padding:10px 20px;font-size:13px;font-weight:700;
+  background:linear-gradient(135deg,var(--sun),var(--orange));
+  box-shadow:0 4px 12px rgba(239,125,60,.28);}
+.login-link:hover{filter:brightness(1.06);}
+.toast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);
+  background:var(--ink);color:var(--cream);padding:12px 22px;border-radius:999px;
+  font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:99;
+  max-width:86vw;text-align:center;}
+
+@media (max-width:600px){
+  .wrap{padding:20px 14px 60px;}
+  .top h1{font-size:19px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">正在加载…</div>
+</div>
+<script>
+(function () {
+  'use strict';
+
+  var API = 'api/';
+  var S = { csrf: '', me: null };
+
+  var CAT_CN = {
+    bug: '漏洞/BUG', appeal: '申诉',
+    suggestion: '建议', other: '其他'
+  };
+  var STATUS_CN = { open: '待处理', replied: '已回复', closed: '已关闭' };
+
+  function el(tag, cls, txt) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt != null) n.textContent = txt;
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
+
+  function api(path, opt) {
+    opt = opt || {};
+    opt.credentials = 'same-origin';
+    opt.headers = opt.headers || {};
+    if (opt.body) {
+      opt.method = 'POST';
+      opt.headers['Content-Type'] = 'application/json';
+      opt.headers['X-CSRF-Token'] = S.csrf;
+      opt.body = JSON.stringify(opt.body);
+    }
+    return fetch(API + path, opt).then(function (r) {
+      return r.json().catch(function () {
+        throw new Error('服务器返回了非 JSON 内容');
+      });
+    });
+  }
+
+  var toastTimer;
+  function toast(m) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var t = el('div', 'toast', m);
+    document.body.appendChild(t);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.remove(); }, 3800);
+  }
+
+  function fmt(s) {
+    if (!s) return '—';
+    return String(s).replace('T', ' ').slice(0, 16);
+  }
+
+  function renderLoginRequired() {
+    var app = document.getElementById('app');
+    clear(app);
+
+    var top = el('div', 'top');
+    top.appendChild(el('h1', null, '工单'));
+    var home = el('a', 'home', '← 回首页');
+    home.href = 'index.html';
+    top.appendChild(home);
+    app.appendChild(top);
+
+    var card = el('div', 'card login-required');
+    card.appendChild(el('h2', null, '请先登录'));
+    card.appendChild(el('p', null, '工单会关联到你的游戏账号。请先回到首页登录，再打开工单页面。'));
+    var login = el('a', 'login-link', '回首页登录');
+    login.href = 'index.html';
+    card.appendChild(login);
+    app.appendChild(card);
+  }
+
+  function render() {
+    var app = document.getElementById('app');
+    clear(app);
+
+    var top = el('div', 'top');
+    top.appendChild(el('h1', null, '工单'));
+    var a = el('a', 'home', '← 回首页');
+    a.href = 'index.html';
+    top.appendChild(a);
+    if (S.me) {
+      top.appendChild(el('div', 'who', S.me.realname || S.me.name));
+    }
+    app.appendChild(top);
+
+    var tabs = el('div', 'tabs');
+    var t1 = el('button', 'tab on', '提交工单');
+    var t2 = el('button', 'tab', '我的工单');
+    tabs.appendChild(t1);
+    tabs.appendChild(t2);
+    app.appendChild(tabs);
+
+    var p1 = el('div', 'pane on');
+    var p2 = el('div', 'pane');
+    app.appendChild(p1);
+    app.appendChild(p2);
+
+    t1.onclick = function () {
+      t1.className = 'tab on'; t2.className = 'tab';
+      p1.className = 'pane on'; p2.className = 'pane';
+    };
+    t2.onclick = function () {
+      t2.className = 'tab on'; t1.className = 'tab';
+      p2.className = 'pane on'; p1.className = 'pane';
+      loadMine();
+    };
+
+    renderForm(p1);
+    p2.appendChild(el('div', 'loading', '加载中…'));
+  }
+
+  function renderForm(parent) {
+    var note = el('div', 'note',
+      '遇到问题或有建议？提交工单，管理组会尽快处理。');
+    parent.appendChild(note);
+
+    var form = el('div', 'form');
+
+    var f1 = el('div', 'fld');
+    f1.appendChild(el('label', null, '分类'));
+    var sel = el('select');
+    sel.innerHTML = '<option value="bug">漏洞/BUG</option>' +
+      '<option value="appeal">申诉</option>' +
+      '<option value="suggestion">建议</option>' +
+      '<option value="other">其他</option>';
+    f1.appendChild(sel);
+    form.appendChild(f1);
+
+    var f2 = el('div', 'fld');
+    f2.appendChild(el('label', null, '标题（4-60 字）'));
+    var subj = el('input');
+    subj.placeholder = '简短描述问题';
+    f2.appendChild(subj);
+    form.appendChild(f2);
+
+    var f3 = el('div', 'fld');
+    f3.appendChild(el('label', null, '详细说明（10-2000 字）'));
+    var cont = el('textarea');
+    cont.placeholder = '详细描述问题、复现步骤、或你的建议';
+    f3.appendChild(cont);
+    form.appendChild(f3);
+
+    var err = el('div', 'err');
+    err.style.display = 'none';
+    form.appendChild(err);
+
+    var btn = el('button', null, '提交工单');
+    form.appendChild(btn);
+
+    btn.onclick = function () {
+      err.style.display = 'none';
+      var category = sel.value;
+      var subject = subj.value.trim();
+      var content = cont.value.trim();
+
+      if (!subject || !content) {
+        err.textContent = '请填写标题和内容';
+        err.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      api('ticket.php', {
+        body: { category: category, subject: subject, content: content }
+      }).then(function (d) {
+        if (!d.ok) throw new Error(d.message || d.error || '提交失败');
+        toast(d.message);
+        sel.selectedIndex = 0;
+        subj.value = '';
+        cont.value = '';
+        btn.disabled = false;
+      }).catch(function (e) {
+        err.textContent = String(e.message || e);
+        err.style.display = 'block';
+        btn.disabled = false;
+      });
+    };
+
+    parent.appendChild(form);
+  }
+
+  function loadMine() {
+    var p2 = document.querySelectorAll('.pane')[1];
+    clear(p2);
+    p2.appendChild(el('div', 'loading', '加载中…'));
+
+    api('ticket.php?action=mine').then(function (d) {
+      if (!d.ok) throw new Error(d.message || d.error);
+      clear(p2);
+      if (!d.tickets || d.tickets.length === 0) {
+        p2.appendChild(el('div', 'empty', '你还没有提交过工单'));
+        return;
+      }
+      d.tickets.forEach(function (t) {
+        var card = el('div', 'card');
+        var h3 = el('h3', null, '[' + CAT_CN[t.category] + '] ' + t.subject);
+        card.appendChild(h3);
+
+        var meta = el('div', 'meta');
+        meta.innerHTML = '<b>提交时间</b> ' + fmt(t.created) + ' &nbsp;';
+        var st = el('span', 'status ' + t.status, STATUS_CN[t.status]);
+        meta.appendChild(st);
+        card.appendChild(meta);
+
+        var txt = el('div', 'txt', t.content);
+        card.appendChild(txt);
+
+        if (t.reply) {
+          var rbox = el('div', 'reply-box');
+          rbox.appendChild(el('div', 'lbl', '管理组回复（' + (t.replied_by || '管理组') + ' · ' + fmt(t.replied_at) + '）'));
+          rbox.appendChild(el('div', 'txt', t.reply));
+          card.appendChild(rbox);
+        }
+
+        p2.appendChild(card);
+      });
+    }).catch(function (e) {
+      clear(p2);
+      var err = el('div', 'err', String(e.message || e));
+      p2.appendChild(err);
+    });
+  }
+
+  /* ── 启动 ── */
+  api('me.php').then(function (d) {
+    if (!d.ok) throw new Error(d.message || d.error);
+    if (!d.user) {
+      renderLoginRequired();
+      return;
+    }
+    S.csrf = d.csrf;
+    S.me = d.user;
+    render();
+  }).catch(function (e) {
+    document.getElementById('app').innerHTML =
+      '<div class="err">加载失败：' + (e.message || e) + '</div>';
+  });
+})();
+</script>
+</body>
+</html>

@@ -199,7 +199,12 @@ td.act{text-align:right;white-space:nowrap;}
     if (needInput) {
       var f = el('div', 'fld');
       f.appendChild(el('label', null, needInput.label));
-      input = el('input');
+      if (needInput.multiline) {
+        input = el('textarea');
+        input.style.minHeight = '100px';
+      } else {
+        input = el('input');
+      }
       input.placeholder = needInput.placeholder || '';
       if (needInput.value) input.value = needInput.value;
       f.appendChild(input);
@@ -261,9 +266,16 @@ td.act{text-align:right;white-space:nowrap;}
     t2.dataset.p = 'roles';
     tabs.appendChild(t2);
 
-    var t3 = el('button', 'tab', '操作记录');
-    t3.dataset.p = 'audit';
+    var t3 = el('button', 'tab', '工单');
+    t3.dataset.p = 'tickets';
+    var tcnt = el('span', 'n', '0');
+    tcnt.id = 'tcount'; tcnt.style.display = 'none';
+    t3.appendChild(tcnt);
     tabs.appendChild(t3);
+
+    var t4 = el('button', 'tab', '操作记录');
+    t4.dataset.p = 'audit';
+    tabs.appendChild(t4);
 
     tabs.onclick = function (e) {
       var b = e.target.closest('.tab');
@@ -274,13 +286,14 @@ td.act{text-align:right;white-space:nowrap;}
       [].forEach.call(document.querySelectorAll('.pane'), function (p) {
         p.classList.toggle('on', p.dataset.p === S.tab);
       });
-      if (S.tab === 'review') loadPending();
-      if (S.tab === 'roles')  loadRoles();
-      if (S.tab === 'audit')  loadAudit();
+      if (S.tab === 'review')  loadPending();
+      if (S.tab === 'roles')   loadRoles();
+      if (S.tab === 'tickets') loadTickets('open');
+      if (S.tab === 'audit')   loadAudit();
     };
     app.appendChild(tabs);
 
-    ['review', 'roles', 'audit'].forEach(function (p) {
+    ['review', 'roles', 'tickets', 'audit'].forEach(function (p) {
       var pane = el('div', 'pane' + (p === 'review' ? ' on' : ''));
       pane.dataset.p = p;
       pane.id = 'pane-' + p;
@@ -635,6 +648,125 @@ td.act{text-align:right;white-space:nowrap;}
     });
   }
 
+  /* ── 工单 ── */
+  function loadTickets(status) {
+    var pane = document.getElementById('pane-tickets');
+    clear(pane);
+    pane.appendChild(el('div', 'loading', '加载中…'));
+
+    api('admin.php?action=tickets&status=' + status).then(function (d) {
+      if (!d.ok) throw new Error(d.message || d.error);
+      clear(pane);
+
+      var subnav = el('div', 'tabs');
+      subnav.style.marginBottom = '16px';
+      var s1 = el('button', 'tab' + (status === 'open' ? ' on' : ''), '待处理');
+      var n1 = el('span', 'n', String(d.count.open || 0));
+      s1.appendChild(n1);
+      s1.onclick = function () { loadTickets('open'); };
+      var s2 = el('button', 'tab' + (status === 'replied' ? ' on' : ''), '已回复');
+      s2.onclick = function () { loadTickets('replied'); };
+      var s3 = el('button', 'tab' + (status === 'closed' ? ' on' : ''), '已关闭');
+      s3.onclick = function () { loadTickets('closed'); };
+      subnav.appendChild(s1);
+      subnav.appendChild(s2);
+      subnav.appendChild(s3);
+      pane.appendChild(subnav);
+
+      /* 更新顶部工单标签的数字 */
+      var tc = document.getElementById('tcount');
+      if (tc) {
+        var cnt = d.count.open || 0;
+        tc.textContent = String(cnt);
+        tc.style.display = cnt > 0 ? '' : 'none';
+      }
+
+      if (!d.list || d.list.length === 0) {
+        pane.appendChild(el('div', 'empty', '没有工单'));
+        return;
+      }
+
+      d.list.forEach(function (t) {
+        var card = el('div', 'card');
+        var h3 = el('h3', null, '#' + t.id + ' [' + catName(t.category) + '] ' + t.subject);
+        card.appendChild(h3);
+
+        var meta = el('div', 'meta');
+        meta.innerHTML = '<b>提交人</b> ' + t.author + ' &nbsp; <b>时间</b> ' + fmt(t.created);
+        card.appendChild(meta);
+
+        var txt = el('div', 'body', t.content);
+        card.appendChild(txt);
+
+        if (t.reply) {
+          var rbox = el('div', 'body');
+          rbox.style.background = 'var(--paper)';
+          rbox.style.marginTop = '12px';
+          var lbl = el('div', null, '回复（' + (t.replied_by || '管理组') + ' · ' + fmt(t.replied_at) + '）');
+          lbl.style.fontSize = '12px';
+          lbl.style.fontWeight = '600';
+          lbl.style.color = 'var(--dim)';
+          lbl.style.marginBottom = '8px';
+          rbox.appendChild(lbl);
+          rbox.appendChild(el('div', null, t.reply));
+          card.appendChild(rbox);
+        }
+
+        var row = el('div', 'row');
+        row.style.marginTop = '12px';
+
+        if (status === 'open') {
+          var btn1 = el('button', 'sm', '回复');
+          btn1.onclick = function () { showReplyBox(t.id, t.subject); };
+          row.appendChild(btn1);
+
+          var btn2 = el('button', 'ghost sm', '关闭');
+          btn2.onclick = function () { closeTicket(t.id, t.subject); };
+          row.appendChild(btn2);
+        }
+
+        if (status === 'replied') {
+          var btn3 = el('button', 'ghost sm', '关闭');
+          btn3.onclick = function () { closeTicket(t.id, t.subject); };
+          row.appendChild(btn3);
+        }
+
+        card.appendChild(row);
+        pane.appendChild(card);
+      });
+    }).catch(function (e) {
+      clear(pane);
+      pane.appendChild(el('div', 'err', String(e.message || e)));
+    });
+  }
+
+  function catName(c) {
+    var m = { bug: '漏洞/BUG', appeal: '申诉', suggestion: '建议', other: '其他' };
+    return m[c] || c;
+  }
+
+  function showReplyBox(id, subj) {
+    ask('回复工单 #' + id, subj, '发送回复', function (reply, done) {
+      api('admin.php', {
+        body: { action: 'reply_ticket', id: id, reply: reply }
+      }).then(function (j) {
+        if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+        toast(j.message); done(); loadTickets('open');
+      }).catch(function (e) { toast(String(e.message || e)); done(true); });
+    }, { label: '回复内容', placeholder: '告诉玩家问题的处理结果或下一步' });
+  }
+
+  function closeTicket(id, subj) {
+    ask('关闭工单 #' + id + '？', subj, '关闭', function (_, done) {
+      api('admin.php', {
+        body: { action: 'close_ticket', id: id }
+      }).then(function (j) {
+        if (!j.ok) { toast(j.message || '失败'); done(true); return; }
+        toast(j.message); done(); loadTickets('open');
+      }).catch(function (e) { toast(String(e.message || e)); done(true); });
+    });
+  }
+
   /* ══════════ 入口 ══════════ */
   var app = document.getElementById('app');
 
@@ -677,6 +809,7 @@ td.act{text-align:right;white-space:nowrap;}
 
     shell();
     loadPending();
+    loadTickets('open');
   }).catch(function (e) {
     clear(app);
     var d = el('div', 'err');

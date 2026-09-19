@@ -4,7 +4,7 @@
    ------------------------------------------------------------
        cd /www/wwwroot/你的域名/api
        cp config.example.php config.php
-       nano config.php          # 填三处密码
+       nano config.php          # 填数据库、站长和安全设置
 
    config.php 在 .gitignore 里，不会进版本库，也不会被
    git pull 覆盖。所以填一次就行，以后我改代码不影响它。
@@ -18,12 +18,11 @@
 return [
 
   /* ── AuthMe 数据库（只读） ──
-     你的 MC 服托管在 starmc.cn，AuthMe 库在他们那边。
-     两种情况：
+     AuthMe 库通常在游戏服务器或托管商处。两种情况：
 
      1. 服务商允许远程连接数据库
-        host 填他们给的地址，并让他们放行你这台服务器的 IP
-        （154.36.158.143）。强烈建议单独要一个只有 SELECT
+        host 填他们给的地址，并让他们放行网站服务器的公网 IP。
+        强烈建议单独要一个只有 SELECT
         权限的账号，别用 root。
 
      2. 不允许远程连接（多数便宜托管都这样）
@@ -54,7 +53,7 @@ return [
 
   /* ── 站点自己的库（读写） ──
      Wiki 词条、投稿、登录失败记录都在这里。
-     这个库在你自己的东京服务器上，用宝塔建：
+     这个库在网站服务器上创建；使用宝塔时：
        数据库 → 添加数据库 → 名称 townsite → 字符集 utf8mb4
      宝塔会自动生成密码，复制过来填到下面。 */
   'site' => [
@@ -88,8 +87,25 @@ return [
     'profile'      => true,
     'wiki_submit'  => true,
     'wiki_edit'    => true,
-    'game_data'    => false,
+    'ticket'       => true,    // 玩家工单与后台回复
+    'game_data'    => false,   // 游戏数据绑定功能，需要配合插件使用
     'show_ip'      => false,   // 生产环境别开，IP 属于敏感信息
+  ],
+
+  /* ── 游戏插件 API ── */
+  'game_api_secret' => '',     // ← 填 32 位随机字符串，和插件 config.yml 里一致
+
+  /* ── 允许的游戏服务器 IP (白名单) ── */
+  'game_server_ips' => [
+    // '服务器公网IP',
+    '127.0.0.1',               // 本地测试
+  ],
+
+  /* ── 邮件发送 ── */
+  'mail' => [
+    'from'      => 'noreply@yhlg.love',
+    'from_name' => '永恒流光',
+    // 如果系统 mail() 不可用，可以配 SMTP（暂不实现）
   ],
 
   /* ── 站长 ──
@@ -101,7 +117,7 @@ return [
      写在这里，改配置文件才能换站长，比改一行数据安全得多。
 
      大小写不敏感，填 IN7_ 和 in7_ 一样。 */
-  'site_owner' => 'IN7_',
+  'site_owner' => '',           // ← 填站长的游戏 ID
 
   /* ── Wiki 编辑组（额外白名单） ──
      现在编辑组和管理组主要在后台页面里点着设，存在 site_roles 表。

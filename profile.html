@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>玩家资料</title>
+<style>
+:root{
+  --cream:#FBF9F4;--cream2:#F8F5EE;--paper:#FFFFFF;
+  --ink:#2D1F10;--ink2:#4A3B28;--dim:#8B7B6A;
+  --line:#E8E3D8;--line2:#D9D1C2;
+  --sun:#F4A521;--orange:#EF7D3C;--red:#D9534F;
+  --rl:14px;--sh:0 2px 8px rgba(45,31,16,.06);
+  --sh-sm:0 1px 3px rgba(45,31,16,.04);
+}
+body{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--cream);color:var(--ink);min-height:100vh;margin:0;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse at 15% 8%,rgba(244,165,33,.055) 0%,transparent 46%),
+    radial-gradient(ellipse at 85% 92%,rgba(239,125,60,.042) 0%,transparent 46%);}
+.wrap{max-width:960px;margin:0 auto;padding:28px 20px 80px;}
+
+/* ── 顶部 ── */
+.header{display:flex;align-items:center;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+.header h1{font-size:22px;font-weight:800;letter-spacing:.02em;margin:0;}
+.back{font-size:13px;color:var(--ink2);text-decoration:none;
+  border-bottom:1px dashed var(--line2);}
+.back:hover{color:var(--orange);}
+
+/* ── 卡片 ── */
+.card{background:var(--cream2);border:1px solid var(--line);border-radius:var(--rl);
+  padding:20px 24px;margin-bottom:18px;box-shadow:var(--sh-sm);}
+.card h2{font-size:18px;font-weight:700;margin:0 0 16px;color:var(--ink);}
+.card h3{font-size:15px;font-weight:700;margin:20px 0 10px;color:var(--ink2);}
+
+/* ── 统计数据 ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;}
+.stat{text-align:center;padding:16px;background:var(--paper);
+  border:1px solid var(--line);border-radius:10px;}
+.stat .label{font-size:12px;color:var(--dim);margin-bottom:6px;}
+.stat .value{font-size:24px;font-weight:700;color:var(--orange);}
+.stat .unit{font-size:13px;color:var(--ink2);margin-left:4px;}
+
+/* ── 徽章 ── */
+.badges{display:flex;flex-wrap:wrap;gap:10px;}
+.badge{display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:999px;font-size:13px;font-weight:600;
+  background:var(--paper);border:1.5px solid var(--line);
+  transition:all .2s;}
+.badge .icon{font-size:20px;line-height:1;}
+.badge .name{color:var(--ink2);}
+.badge.common{border-color:#D9D1C2;}
+.badge.rare{border-color:#4FACDD;background:rgba(79,172,221,.04);}
+.badge.rare .name{color:#1c5f85;}
+.badge.epic{border-color:#C65BCF;background:rgba(198,91,207,.04);}
+.badge.epic .name{color:#7a2580;}
+.badge.legendary{border-color:#F4A521;background:rgba(244,165,33,.06);}
+.badge.legendary .name{color:#8a5a00;}
+.badge:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(45,31,16,.1);}
+
+/* ── 提示 ── */
+.empty{text-align:center;padding:52px 20px;color:var(--dim);font-size:14px;}
+.loading{text-align:center;padding:80px 20px;color:var(--dim);font-size:14px;}
+.err{background:rgba(217,83,79,.08);border:1px solid rgba(217,83,79,.25);
+  color:#a33;border-radius:12px;padding:12px 16px;font-size:13px;
+  line-height:1.7;margin-bottom:14px;}
+
+@media (max-width:600px){
+  .wrap{padding:20px 14px 60px;}
+  .header h1{font-size:19px;}
+  .stats{grid-template-columns:1fr 1fr;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">加载中…</div>
+</div>
+<script>
+(function(){
+'use strict';
+
+var API='api/';
+
+function el(tag,cls,txt){
+  var n=document.createElement(tag);
+  if(cls)n.className=cls;
+  if(txt!=null)n.textContent=txt;
+  return n;
+}
+function clear(n){while(n.firstChild)n.removeChild(n.firstChild);}
+
+function api(path,opt){
+  opt=opt||{};
+  opt.credentials='same-origin';
+  return fetch(API+path,opt).then(function(r){
+    return r.json().catch(function(){
+      throw new Error('服务器返回了非 JSON 内容');
+    });
+  });
+}
+
+function formatTime(minutes){
+  if(!minutes)return'—';
+  var h=Math.floor(minutes/60);
+  var m=minutes%60;
+  if(h===0)return m+'分钟';
+  return h+'小时'+(m>0?' '+m+'分钟':'');
+}
+
+function formatDate(s){
+  if(!s)return'—';
+  return String(s).replace('T',' ').slice(0,16);
+}
+
+function init(){
+  var params=new URLSearchParams(location.search);
+  var username=params.get('u')||'';
+  if(!username){
+    showError('缺少用户名参数');
+    return;
+  }
+
+  api('profile.php?action=stats&username='+encodeURIComponent(username))
+    .then(function(resp){
+      if(!resp.ok){
+        showError(resp.message||'加载失败');
+        return;
+      }
+      render(username,resp.data);
+    })
+    .catch(function(e){
+      showError('网络错误: '+e.message);
+    });
+}
+
+function showError(msg){
+  var app=document.getElementById('app');
+  clear(app);
+  app.appendChild(el('div','err',msg));
+}
+
+function render(username,data){
+  var app=document.getElementById('app');
+  clear(app);
+
+  /* 头部 */
+  var header=el('div','header');
+  header.appendChild(el('h1',null,'玩家资料 - '+username));
+  var back=el('a','back','← 回到首页');
+  back.href='index.html';
+  header.appendChild(back);
+  app.appendChild(header);
+
+  /* 游戏数据 */
+  if(data.game){
+    var card=el('div','card');
+    card.appendChild(el('h2',null,'🎮 游戏数据'));
+
+    var stats=el('div','stats');
+
+    var s1=el('div','stat');
+    s1.appendChild(el('div','label','游戏时长'));
+    var v1=el('div','value');
+    v1.textContent=data.game.playtime_hours||'—';
+    if(data.game.playtime_hours){
+      v1.appendChild(el('span','unit','小时'));
+    }
+    s1.appendChild(v1);
+    stats.appendChild(s1);
+
+    var s2=el('div','stat');
+    s2.appendChild(el('div','label','最后上线'));
+    var v2=el('div','value');
+    v2.style.fontSize='14px';
+    v2.textContent=formatDate(data.game.last_seen);
+    s2.appendChild(v2);
+    stats.appendChild(s2);
+
+    var s3=el('div','stat');
+    s3.appendChild(el('div','label','首次登录'));
+    var v3=el('div','value');
+    v3.style.fontSize='14px';
+    v3.textContent=formatDate(data.game.first_login);
+    s3.appendChild(v3);
+    stats.appendChild(s3);
+
+    card.appendChild(stats);
+    app.appendChild(card);
+  }
+
+  /* 成就徽章 */
+  if(data.badges&&data.badges.length>0){
+    var card2=el('div','card');
+    card2.appendChild(el('h2',null,'🏆 成就徽章'));
+
+    var badges=el('div','badges');
+    data.badges.forEach(function(b){
+      var badge=el('div','badge '+(b.rarity||'common'));
+      badge.title=b.description+' - 解锁于 '+formatDate(b.unlocked_at);
+      badge.appendChild(el('span','icon',b.icon||'🏅'));
+      badge.appendChild(el('span','name',b.name_zh||b.badge_id));
+      badges.appendChild(badge);
+    });
+
+    card2.appendChild(badges);
+    app.appendChild(card2);
+  }else if(data.game){
+    var card3=el('div','card');
+    card3.appendChild(el('h2',null,'🏆 成就徽章'));
+    card3.appendChild(el('div','empty','暂无徽章，去游戏里解锁成就吧！'));
+    app.appendChild(card3);
+  }
+
+  /* 如果完全没有数据 */
+  if(!data.game&&(!data.badges||data.badges.length===0)){
+    var card4=el('div','card');
+    card4.appendChild(el('h2',null,'🎮 游戏数据'));
+    card4.appendChild(el('div','empty','暂无游戏数据。进服玩一会儿就会同步过来了。'));
+    app.appendChild(card4);
+  }
+}
+
+init();
+})();
+</script>
+</body>
+</html>

@@ -190,6 +190,44 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
         Core::json(['ok' => true, 'list' => $st->fetchAll()]);
     }
 
+    /* ── 工单列表 ── */
+    if ($action === 'tickets') {
+        $status = $_GET['status'] ?? 'open';
+        if (!in_array($status, ['open', 'replied', 'closed'], true)) {
+            Core::fail(400, 'bad_status', '未知的状态');
+        }
+        $st = $db->prepare(
+            'SELECT id, author, category, subject, content, status, reply,
+                    created, replied_at, replied_by
+               FROM tickets WHERE status = ?
+              ORDER BY created DESC LIMIT 200');
+        $st->execute([$status]);
+        $rows = [];
+        foreach ($st->fetchAll() as $r) {
+            $rows[] = [
+                'id'         => (int)$r['id'],
+                'author'     => $r['author'],
+                'category'   => $r['category'],
+                'subject'    => $r['subject'],
+                'content'    => $r['content'],
+                'status'     => $r['status'],
+                'reply'      => $r['reply'],
+                'created'    => $r['created'],
+                'replied_at' => $r['replied_at'],
+                'replied_by' => $r['replied_by'],
+            ];
+        }
+
+        /* 顺手带上各状态的条数 */
+        $cnt = ['open' => 0, 'replied' => 0, 'closed' => 0];
+        foreach ($db->query('SELECT status, COUNT(*) c FROM tickets GROUP BY status')
+                    ->fetchAll() as $r) {
+            $cnt[$r['status']] = (int)$r['c'];
+        }
+
+        Core::json(['ok' => true, 'list' => $rows, 'count' => $cnt]);
+    }
+
     Core::fail(400, 'bad_action', '未知的 action');
 }
 
@@ -416,6 +454,56 @@ if ($action === 'remove_role') {
     }
 
     Core::json(['ok' => true, 'message' => '已撤销 ' . $target . ' 的权限组' . $extra]);
+}
+
+/* ── 回复工单 ── */
+if ($action === 'reply_ticket') {
+    $id    = (int)($in['id'] ?? 0);
+    $reply = trim((string)($in['reply'] ?? ''));
+    if ($id < 1) Core::fail(400, 'bad_id', '参数不对');
+    if (Core::slen($reply) < 2) Core::fail(400, 'short_reply', '回复太短了');
+    if (Core::slen($reply) > 2000) Core::fail(400, 'long_reply', '回复超过 2000 字');
+
+    try {
+        $st = $db->prepare('SELECT author, subject FROM tickets WHERE id = ?');
+        $st->execute([$id]);
+        $r = $st->fetch();
+        if (!$r) Core::fail(404, 'not_found', '工单不存在');
+
+        $st = $db->prepare(
+            'UPDATE tickets SET reply = ?, status = \'replied\',
+                    replied_at = NOW(), replied_by = ?
+             WHERE id = ?');
+        $st->execute([$reply, $me['name'], $id]);
+    } catch (\PDOException $e) {
+        error_log('[town-admin] reply_ticket failed: ' . $e->getMessage());
+        Core::fail(503, 'db_error', '操作失败');
+    }
+
+    Core::audit('reply_ticket', $r['author'], '#' . $id . ' ' . $r['subject']);
+    Core::json(['ok' => true, 'message' => '已回复工单']);
+}
+
+/* ── 关闭工单 ── */
+if ($action === 'close_ticket') {
+    $id = (int)($in['id'] ?? 0);
+    if ($id < 1) Core::fail(400, 'bad_id', '参数不对');
+
+    try {
+        $st = $db->prepare('SELECT author, subject FROM tickets WHERE id = ?');
+        $st->execute([$id]);
+        $r = $st->fetch();
+        if (!$r) Core::fail(404, 'not_found', '工单不存在');
+
+        $st = $db->prepare('UPDATE tickets SET status = \'closed\' WHERE id = ?');
+        $st->execute([$id]);
+    } catch (\PDOException $e) {
+        error_log('[town-admin] close_ticket failed: ' . $e->getMessage());
+        Core::fail(503, 'db_error', '操作失败');
+    }
+
+    Core::audit('close_ticket', $r['author'], '#' . $id . ' ' . $r['subject']);
+    Core::json(['ok' => true, 'message' => '已关闭工单']);
 }
 
 Core::fail(400, 'bad_action', '未知的 action');

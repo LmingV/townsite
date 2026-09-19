@@ -15,6 +15,8 @@
 # 你的密码也不会出现在 Gitee 上。
 api/config.php
 api/config.dev.php
+.env
+data/
 
 # ── 开发专用，上线即风险 ──
 # selftest.php 会输出 PHP 版本、扩展列表、数据库连接状态、
@@ -24,10 +26,13 @@ api/selftest.php
 # ── 本地开发脚本，服务器上没意义 ──
 dev-server.bat
 dev-server.ps1
+dev-server-fixed.ps1
+deploy-game-api.ps1
 
 # ── 说明文档，不需要上线 ──
-DEPLOY.md
 DEV.md
+PLUGIN_DESIGN.md
+PLUGIN_DEPLOY.md
 
 # ── 系统与编辑器杂物 ──
 .DS_Store
