@@ -251,7 +251,7 @@ else
   chmod 600 api/config.php 2>/dev/null || true
   c_y "[!] 系统没有 www 用户，请确认 PHP-FPM 用户能读取站点文件"
 fi
-chmod +x deploy.sh 2>/dev/null || true
+find "$ROOT" -maxdepth 1 -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
 if [ -d .git ]; then chmod -R go-rwx .git 2>/dev/null || true; fi
 
 echo
