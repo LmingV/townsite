@@ -235,11 +235,16 @@ fi
 # 只把组设为 www，避免 Web 进程拥有修改源码的权限。
 echo
 if id www >/dev/null 2>&1; then
-  chgrp -R www "$ROOT" 2>/dev/null || c_y "[!] 修改文件组失败，可能需要 sudo"
+  if find "$ROOT" -path "$ROOT/.git" -prune -o -name '.user.ini' -prune \
+       -o -exec chgrp www {} + 2>/dev/null; then
+    c_g "[OK] 文件组设为 www"
+  else
+    c_y "[!] 部分文件组修改失败，请确认 Web 进程能读取站点文件"
+  fi
   find "$ROOT" -type d -not -path '*/.git/*' -exec chmod 750 {} \; 2>/dev/null || true
   find "$ROOT" -type f -not -path '*/.git/*' -exec chmod 640 {} \; 2>/dev/null || true
   chmod 640 api/config.php 2>/dev/null || true
-  c_g "[OK] 文件组设为 www，Web 进程只有读取权限"
+  c_g "[OK] Web 进程只有读取权限"
 else
   find "$ROOT" -type d -not -path '*/.git/*' -exec chmod 755 {} \; 2>/dev/null || true
   find "$ROOT" -type f -not -path '*/.git/*' -exec chmod 644 {} \; 2>/dev/null || true
