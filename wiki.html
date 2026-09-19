@@ -155,15 +155,18 @@ html.vt-active *{transition:none !important;}
 
 
 /* ───────── WIKI 布局 ───────── */
-.wk-wrap{max-width:1480px;margin:0 auto;padding:104px 30px 78px;}
-.wk-hero{max-width:920px;margin-bottom:26px;}
+.wk-wrap{max-width:1540px;margin:0 auto;padding:88px 30px 78px;}
+.wk-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,520px);gap:32px;align-items:end;
+  margin-bottom:24px;padding:22px 26px;background:var(--cream2);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--sh-sm);transition:background-color .9s,border-color .9s;}
+.wk-hero-copy{min-width:0;}
 .wk-kicker{font-size:12px;font-weight:900;letter-spacing:.14em;color:var(--orange);margin-bottom:8px;}
-.wk-title{font-size:clamp(34px,5vw,54px);font-weight:900;letter-spacing:-1px;color:var(--ink);line-height:1.08;
+.wk-title{font-size:clamp(28px,3.4vw,38px);font-weight:900;letter-spacing:-.7px;color:var(--ink);line-height:1.08;
   transition:color .9s ease;}
-.wk-desc{font-size:15px;color:var(--ink2);line-height:1.8;margin-top:12px;transition:color .9s ease;}
+.wk-desc{font-size:14px;color:var(--ink2);line-height:1.7;margin-top:9px;transition:color .9s ease;}
 /* 搜索 */
-.wk-search{position:relative;margin-top:22px;max-width:720px;}
-.wk-search input{width:100%;height:54px;border:1.5px solid var(--line2);border-radius:16px;
+.wk-search{position:relative;max-width:720px;}
+.wk-search input{width:100%;height:48px;border:1.5px solid var(--line2);border-radius:13px;
   background:var(--cream2);color:var(--ink);font:inherit;font-size:16px;padding:0 18px 0 50px;outline:none;
   box-shadow:var(--sh-sm);transition:border-color .2s,box-shadow .2s,background-color .9s,color .9s;}
 .wk-search input:focus{border-color:var(--sun);box-shadow:0 0 0 4px rgba(244,165,33,.13);}
@@ -180,8 +183,8 @@ html.vt-active *{transition:none !important;}
 .wk-hit-desc{font-size:12.5px;color:var(--ink2);line-height:1.55;margin-top:3px;}
 .wk-hit mark{background:rgba(244,165,33,.3);border-radius:4px;color:var(--ink);padding:0 1px;}
 .wk-empty{padding:16px;font-size:13px;color:var(--ink2);}
-/* 两栏 */
-.wk-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:30px;align-items:start;}
+/* 文档站三栏：目录 / 正文 / 本页目录 */
+.wk-layout{display:grid;grid-template-columns:260px minmax(0,1fr) 190px;gap:28px;align-items:start;}
 .wk-side{position:sticky;top:84px;max-height:calc(100vh - 104px);overflow:auto;background:var(--cream2);
   border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--sh-sm);
   transition:background-color .9s,border-color .9s;}
@@ -211,7 +214,8 @@ html.vt-active *{transition:none !important;}
 .wk-side-actions a.main{background:linear-gradient(135deg,var(--sun),var(--orange));color:#fff;border:0;}
 .wk-side-actions a.main:hover{color:#fff;filter:brightness(1.05);}
 /* 内容区 */
-.wk-content{min-width:0;}
+.wk-content{min-width:0;grid-column:2/-1;}
+body.reading .wk-content{grid-column:2;}
 .wk-sec-title{font-size:18px;font-weight:900;margin:0 0 14px;color:var(--ink);}
 .wk-cat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}
 .wk-card{background:var(--cream2);border:1px solid var(--line);border-radius:18px;padding:18px;
@@ -246,6 +250,20 @@ html.vt-active *{transition:none !important;}
 .wk-mobile-dir{display:none;margin:0 0 16px;border:1px solid var(--line2);background:var(--cream2);
   border-radius:12px;padding:10px 14px;font:inherit;font-weight:900;color:var(--ink);cursor:pointer;}
 
+/* 右侧本页目录 */
+.wk-toc{display:none;position:sticky;top:86px;max-height:calc(100vh - 112px);overflow:auto;padding:8px 0 8px 18px;
+  border-left:1px solid var(--line);}
+body.reading .wk-toc{display:block;}
+.wk-toc-title{font-size:12px;font-weight:900;color:var(--ink);margin-bottom:10px;}
+.wk-toc-nav{display:flex;flex-direction:column;gap:2px;}
+.wk-toc-nav a{display:block;padding:5px 8px;color:var(--dim);font-size:12px;line-height:1.45;text-decoration:none;
+  border-radius:7px;transition:color .15s,background .15s;}
+.wk-toc-nav a:hover{color:var(--ink);background:rgba(244,165,33,.08);}
+.wk-toc-nav a.active{color:var(--orange);font-weight:800;background:rgba(244,165,33,.1);}
+.wk-toc-nav a.lv3{padding-left:18px;}
+.wk-toc-nav a.lv4,.wk-toc-nav a.lv5{padding-left:28px;font-size:11.5px;}
+.wk-toc-empty{font-size:11.5px;line-height:1.6;color:var(--dim);}
+
 /* ───────── 词条正文视图 ───────── */
 .wk-article{display:none;}
 body.reading .wk-article{display:block;}
@@ -253,17 +271,23 @@ body.reading .wk-overview{display:none;}
 .wk-crumb{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2);margin-bottom:14px;flex-wrap:wrap;}
 .wk-crumb a{color:var(--orange);font-weight:800;text-decoration:none;cursor:pointer;}
 .wk-crumb span{color:var(--dim);}
-.wk-doc{background:var(--cream2);border:1px solid var(--line);border-radius:20px;padding:34px 38px;
+.wk-doc{background:var(--cream2);border:1px solid var(--line);border-radius:20px;padding:38px 44px;
   box-shadow:var(--sh-sm);transition:background-color .9s,border-color .9s;}
 .wk-doc-cat{font-size:11.5px;font-weight:900;letter-spacing:.1em;color:var(--orange);margin-bottom:9px;}
-.wk-doc h1{font-size:clamp(24px,3.4vw,33px);font-weight:900;line-height:1.25;color:var(--ink);margin-bottom:10px;}
+.wk-doc h1{font-size:clamp(25px,3.4vw,34px);font-weight:900;line-height:1.25;color:var(--ink);margin-bottom:10px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
 .wk-doc-meta{font-size:12.5px;color:var(--dim);padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid var(--line);}
 .wk-doc-sum{font-size:14.5px;line-height:1.85;color:var(--ink2);background:var(--paper);border-left:3px solid var(--sun);
   border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:24px;transition:background-color .9s;}
-.wk-doc h2{font-size:18px;font-weight:900;color:var(--ink);margin:28px 0 10px;padding-left:11px;
+.wk-doc h2{font-size:20px;font-weight:900;color:var(--ink);margin:34px 0 12px;padding-left:11px;
   border-left:4px solid var(--orange);line-height:1.4;}
+.wk-doc h2,.wk-doc h3,.wk-doc h4,.wk-doc h5{scroll-margin-top:86px;}
+.wk-doc h3{font-size:17px;font-weight:900;color:var(--ink);margin:26px 0 10px;}
+.wk-doc h4,.wk-doc h5{font-size:15px;font-weight:900;color:var(--ink);margin:22px 0 9px;}
 .wk-doc p{font-size:14.5px;line-height:1.9;color:var(--ink2);margin-bottom:14px;}
 .wk-doc strong{color:var(--ink);font-weight:800;}
+.wk-doc a{color:var(--orange);text-decoration:none;font-weight:700;}
+.wk-doc a:hover{text-decoration:underline;text-underline-offset:3px;}
 .wk-doc ul{margin:0 0 16px;padding-left:2px;list-style:none;}
 .wk-doc li{position:relative;font-size:14.5px;line-height:1.85;color:var(--ink2);padding-left:20px;margin-bottom:7px;}
 .wk-doc li::before{content:'';position:absolute;left:4px;top:.72em;width:6px;height:6px;border-radius:2px;
@@ -295,12 +319,19 @@ body.reading .wk-overview{display:none;}
 .wk-nav-b.ph{visibility:hidden;}
 
 /* ───────── 响应式 ───────── */
+@media(max-width:1180px){
+  .wk-layout{grid-template-columns:260px minmax(0,1fr);}
+  .wk-content,body.reading .wk-content{grid-column:2;}
+  .wk-toc,body.reading .wk-toc{display:none;}
+}
 @media(max-width:1100px){
   .wk-cat-grid{grid-template-columns:1fr;}
 }
 @media(max-width:900px){
   .wk-wrap{padding:88px 16px 64px;}
+  .wk-hero{grid-template-columns:1fr;gap:18px;padding:20px;}
   .wk-layout{grid-template-columns:1fr;}
+  .wk-content,body.reading .wk-content{grid-column:1;}
   .wk-side{display:none;}
   .wk-side.open{display:block;position:fixed;z-index:600;top:0;left:0;bottom:0;width:min(320px,88vw);
     max-height:none;border-radius:0;padding-top:76px;overflow:auto;}
@@ -318,6 +349,7 @@ body.reading .wk-overview{display:none;}
   .nav-logo{margin-right:0;}
   .footer-in{flex-direction:column;}
   .fl-r{text-align:left;}
+  .wk-doc{padding:25px 20px;}
 }
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;}
@@ -361,9 +393,11 @@ body.reading .wk-overview{display:none;}
 <main class="wk-wrap">
   <!-- HERO + 搜索 -->
   <section class="wk-hero">
-    <div class="wk-kicker" id="wkKicker">WIKI</div>
-    <h1 class="wk-title" id="wkTitle">永恒流光 Wiki</h1>
-    <p class="wk-desc">进服、领地、经济与常见疑难的文档集合。找不到答案就去群里问，问完欢迎回来补一条。</p>
+    <div class="wk-hero-copy">
+      <div class="wk-kicker" id="wkKicker">WIKI</div>
+      <h1 class="wk-title" id="wkTitle">永恒流光 Wiki</h1>
+      <p class="wk-desc">进服、领地、经济与常见疑难的文档集合。找不到答案就去群里问，问完欢迎回来补一条。</p>
+    </div>
     <div class="wk-search">
       <svg class="wk-si" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="wkSearch" type="search" placeholder="搜索玩法、指令和问题…" autocomplete="off" aria-label="搜索 Wiki">
@@ -411,6 +445,11 @@ body.reading .wk-overview{display:none;}
         <div class="wk-nav" id="wkPrevNext"></div>
       </article>
     </section>
+
+    <aside class="wk-toc" id="wkToc" aria-label="本页目录">
+      <div class="wk-toc-title">本页目录</div>
+      <nav class="wk-toc-nav" id="wkTocNav"></nav>
+    </aside>
   </div>
 </main>
 
@@ -983,7 +1022,7 @@ function renderOverview(){
 function renderDoc(a){
   var c=catOf(a.cat);
   var html='<div class="wk-doc-cat">'+esc(c.name)+'</div>'+
-    '<h1>'+esc(a.title)+'</h1>'+
+    '<h1 id="artTitle">'+esc(a.title)+'</h1>'+
     '<div class="wk-doc-meta">最后更新 '+esc(a.date)+' · 由小镇管理组与玩家共同维护</div>'+
     '<div class="wk-doc-sum">'+rich(fill(a.summary))+'</div>';
   a.blocks.forEach(function(b){
@@ -1018,9 +1057,48 @@ function renderDoc(a){
         :'<span class="wk-nav-b ph"></span>');
 }
 
+/* ───── 右侧本页目录：从实际渲染后的标题生成，静态与 Markdown 词条通用 ───── */
+var tocObserver=null;
+function clearToc(){
+  if(tocObserver){tocObserver.disconnect();tocObserver=null;}
+  var nav=$('wkTocNav');
+  if(nav)nav.innerHTML='';
+}
+function buildToc(){
+  clearToc();
+  var nav=$('wkTocNav'), doc=$('wkDoc');
+  if(!nav||!doc)return;
+  var hs=Array.prototype.slice.call(doc.querySelectorAll('h2,h3,h4,h5'));
+  if(!hs.length){nav.innerHTML='<div class="wk-toc-empty">这篇文档暂时没有小节</div>';return;}
+  var used={};
+  hs.forEach(function(h,i){
+    var base=(h.textContent||'section-'+(i+1)).trim().toLowerCase()
+      .replace(/[^\w\u3400-\u9fff-]+/g,'-').replace(/^-+|-+$/g,'')||('section-'+(i+1));
+    var id=base, n=2;
+    while(used[id]||document.getElementById(id)){id=base+'-'+n++;}
+    used[id]=1;h.id=id;
+    var a=document.createElement('a');
+    a.href='#'+id;a.className='lv'+h.tagName.slice(1);a.textContent=h.textContent;
+    a.addEventListener('click',function(e){
+      e.preventDefault();h.scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    nav.appendChild(a);
+  });
+  var first=nav.querySelector('a');if(first)first.classList.add('active');
+  if(!('IntersectionObserver' in window))return;
+  tocObserver=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting)return;
+      nav.querySelectorAll('a').forEach(function(a){a.classList.toggle('active',a.getAttribute('href')==='#'+entry.target.id);});
+    });
+  },{rootMargin:'-92px 0px -70% 0px',threshold:0});
+  hs.forEach(function(h){tocObserver.observe(h);});
+}
+
 /* ───── 路由：#a/<词条id> 读词条，#c/<分类id> 只看该分类，空 = 总览 ───── */
 function showOverview(filterCat){
   document.body.classList.remove('reading');
+  clearToc();
   var all=$('wkCatGrid'), title=$('wkOvTitle');
   if(filterCat){
     var c=catOf(filterCat), list=artsOf(filterCat);
@@ -1057,10 +1135,15 @@ function showOverview(filterCat){
 }
 function showArticle(id){
   var a=artById(id);
-  if(!a){location.hash='';return;}
+  if(!a){
+    /* 数据库词条会在页面脚本之后异步载入，先保留深链接，接口返回后再路由。 */
+    if(MODE==='wiki'&&!window.wikiPagesReady){showOverview(null);return;}
+    location.hash='';return;
+  }
   renderDoc(a);
   renderTree(id);
   document.body.classList.add('reading');
+  buildToc();
   window.scrollTo(0,0);
 }
 function route(){
